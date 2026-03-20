@@ -107,4 +107,4 @@ Check that your `SLACK_BOT_TOKEN` starts with `xoxb-` and the bot has been invit
 
 ## Need help?
 
-Book a 30-min setup session: [cal.com/riverworks/30min](https://cal.com/riverworks/30min)
+Visit [extensibleagents.com](https://extensibleagents.com) to learn more or get help setting these up for your team.
