@@ -107,4 +107,6 @@ Check that your `SLACK_BOT_TOKEN` starts with `xoxb-` and the bot has been invit
 
 ## Need help?
 
-Visit [extensibleagents.com](https://extensibleagents.com) to learn more or get help setting these up for your team.
+These workflows were built by [ExtensibleAgents](https://extensibleagents.com) — the agentic CS platform co-founded by Lincoln Murphy and Lewis Thompson.
+
+If you want help deploying these for your team, or want to see what a full agentic CS stack looks like in production, visit **[extensibleagents.com](https://extensibleagents.com)**.
