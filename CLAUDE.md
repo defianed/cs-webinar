@@ -1,6 +1,6 @@
 # CLAUDE.md — CS Workflow Templates
 
-You are helping a Customer Success leader set up and deploy agentic CS workflows from this repository. Your job is to be a guided setup assistant — take them from zero to a deployed, working workflow step by step.
+You are helping a Customer Success leader set up, test, and run these agentic CS workflows locally using Claude Code. Your job is to be a guided setup assistant — take them from zero to a working local test, then optionally deploy to the cloud.
 
 ---
 
@@ -10,17 +10,11 @@ You are helping a Customer Success leader set up and deploy agentic CS workflows
 
 | Workflow | Problem it solves |
 |----------|------------------|
-| **Invisible Handoff** | CSM shows up to first customer call underprepared because sales-to-CS handoff was a Slack message and a prayer |
-| **Trust Radar** | CSM can't tell if a win-back customer is genuinely leaving or just negotiating — guesses wrong |
-| **Expansion Signal Detector** | Upsell opportunities sitting in call transcripts and notes go unnoticed until the moment passes |
-| **Churn Risk Summarizer** | Health scores tell you a number, not a story. CSM walks into a QBR without knowing why the account is at risk |
+| **Invisible Handoff** | CSM shows up to first customer call underprepared — sales-to-CS handoff was a Slack message and some notes |
+| **Trust Radar** | CSM can't tell if a win-back customer is genuinely leaving or just negotiating |
+| **Expansion Signal Detector** | Upsell opportunities sitting in transcripts go unnoticed until the moment passes |
+| **Churn Risk Summarizer** | Health scores give a number, not a story. CSM walks into a QBR without knowing why |
 | **Earned Ask** | Review requests go out at the wrong time, with the wrong message, and get ignored |
-
-Each workflow:
-- Runs on [Modal](https://modal.com) cloud (free tier available)
-- Accepts data via webhook POST
-- Sends output to the CSM via Slack
-- Swaps between tools (CRM, transcript provider, LLM) via env vars — no code changes needed
 
 ---
 
@@ -28,139 +22,174 @@ Each workflow:
 
 ```
 cs-webinar/
-├── README.md                          # Start here — prerequisites and quick start
-├── CLAUDE.md                          # This file
+├── README.md                          # Prerequisites and quick start
+├── CLAUDE.md                          # This file — Claude Code reads this automatically
 ├── invisible-handoff/
-│   ├── execution/main.py              # The workflow — this is what you deploy
-│   ├── .env.example                   # All required env vars — copy to .env and fill in
-│   └── README.md                      # Setup guide, example payload, example output
+│   ├── execution/main.py              # The workflow logic
+│   ├── .env.example                   # All required credentials — copy to .env and fill in
+│   └── README.md                      # What it does, example inputs, example outputs
 ├── trust-radar/
 ├── expansion-signal-detector/
 ├── churn-risk-summarizer/
 └── earned-ask/
 ```
 
-**One rule:** every workflow deploys from `execution/main.py`. Never run `main.py` from the root of a workflow folder — there isn't one.
+---
+
+## How the Setup Flow Works
+
+**Local first. Cloud later (optional).**
+
+1. Client installs dependencies and fills in credentials
+2. Client tests locally — runs the workflow, sees real output
+3. If they want it running 24/7 in the cloud → deploy to Modal
+
+Modal is only needed for cloud deployment. Everything can be tested and validated locally first.
 
 ---
 
-## How to Help the Client
+## How to Guide the Client
 
-### Step 1 — Figure out where they are
+### Step 1 — Check prerequisites
 
-Ask:
-1. Do you have Python 3.8+ installed? (`python3 --version`)
-2. Do you have a Modal account? ([modal.com](https://modal.com))
-3. Do you have an LLM API key? (Anthropic or OpenAI)
-4. Do you have a Slack bot token?
+```bash
+python3 --version   # Need 3.8+
+pip --version       # Need pip
+```
 
-If any are missing, walk them through getting set up before anything else.
+If pip is missing:
+```bash
+# Mac
+brew install python
 
-### Step 2 — Recommend starting with Earned Ask
+# Ubuntu/Debian
+sudo apt-get install python3-pip
+```
 
-It's the simplest — no CRM or transcript provider required. Just LLM + Slack. Good confidence builder before tackling Trust Radar.
+### Step 2 — Install dependencies
 
-### Step 3 — Walk through setup for their chosen workflow
+```bash
+pip install anthropic openai slack-sdk requests
+```
 
-1. `cp .env.example .env`
-2. Fill in the values — help them identify which vars they actually need (not all are required)
-3. `modal secret create <workflow-name>-secrets` — walk them through this command
-4. `modal deploy execution/main.py`
-5. Send a test payload to the webhook URL Modal gives them
+### Step 3 — Pick a workflow to start with
 
-### Step 4 — Help them send a test payload
+Recommend **Earned Ask** — it's the simplest. No CRM or transcript provider required. Just an LLM API key and optionally Slack.
 
-Use the example payload from the workflow's README. If they want to test with real data, help them format it correctly.
+### Step 4 — Set up credentials
 
-### Step 5 — Confirm it works
+```bash
+cd earned-ask
+cp .env.example .env
+```
 
-The workflow should send a Slack DM to the `csm_slack_user_id` they provided. If it doesn't arrive, check:
-- Bot token starts with `xoxb-`
-- Bot has been added to the workspace
-- `csm_slack_user_id` is the Slack user ID (starts with `U`), not a username
+Open `.env` and fill in the values. Help them identify which ones they actually need — not all are required. The minimum to test locally:
+
+```
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+ACCOUNT_NAME=Test Account
+MILESTONE_ACHIEVED=Customer went live ahead of schedule
+INTERACTION_SUMMARY=Champion said they would recommend us
+SENTIMENT_SUMMARY=NPS 9 submitted yesterday
+```
+
+### Step 5 — Run locally
+
+Each workflow has a local entrypoint that runs the core logic without any cloud infrastructure:
+
+```bash
+# Load env vars and run
+cd earned-ask
+export $(cat .env | xargs)
+python3 execution/main.py
+```
+
+This runs the workflow with the values from `.env` and prints the output. No Modal account needed.
+
+### Step 6 — Verify the output
+
+The workflow prints a JSON result. Walk the client through reading it — what each field means, whether the output looks right for their use case.
+
+### Step 7 — Connect Slack (optional but recommended)
+
+Add `SLACK_BOT_TOKEN` and `CSM_SLACK_USER_ID` to `.env` and re-run. The workflow will send the output as a Slack DM.
+
+To get the Slack user ID: right-click any user in Slack → View profile → Copy member ID (starts with `U`).
+
+### Step 8 — Cloud deployment (when they're ready)
+
+Only when the local test is working and they want it running automatically:
+
+```bash
+pip install modal
+modal token new    # Opens browser, log in to modal.com (free account)
+
+modal secret create earned-ask-secrets \
+  LLM_PROVIDER=anthropic \
+  ANTHROPIC_API_KEY=sk-ant-... \
+  SLACK_BOT_TOKEN=xoxb-...
+
+modal deploy execution/main.py
+```
+
+Modal gives them a webhook URL. They point their CRM/Gong/Zapier at it and the workflow runs automatically.
 
 ---
 
 ## Common Errors and Fixes
 
-**"Token missing" from Modal**
-```bash
-modal token new
-# Opens browser — log in to your Modal account
-```
-
-**ModuleNotFoundError when running locally**
-Modal installs dependencies in the cloud automatically. For local testing:
+**`ModuleNotFoundError: No module named 'anthropic'`**
 ```bash
 pip install anthropic openai slack-sdk requests
 ```
 
-**JSON parse error / garbled LLM output**
-Switch to a stronger model. In `.env`:
+**`AuthenticationError` from Anthropic or OpenAI**
+The API key in `.env` is wrong or has a typo. Double-check it — no spaces, no quotes around the value.
+
+**`KeyError` or `IndexError` when parsing output**
+The LLM returned something unexpected. Switch to a stronger model:
 ```
 ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
-# or
-OPENAI_MODEL=gpt-4o
 ```
 
 **Slack DM not arriving**
-- Check `SLACK_BOT_TOKEN` starts with `xoxb-`
-- Check `csm_slack_user_id` is a Slack user ID (format: `U012AB3CD`), not `@username`
-- Make sure the bot has been installed to the workspace at [api.slack.com/apps](https://api.slack.com/apps)
+- `SLACK_BOT_TOKEN` must start with `xoxb-`
+- `CSM_SLACK_USER_ID` must be a Slack member ID (format `U012AB3CD`), not `@username`
+- The bot must be installed to the workspace at [api.slack.com/apps](https://api.slack.com/apps)
 
-**Salesforce auth fails**
-The Salesforce provider uses username/password OAuth. Make sure `SALESFORCE_USERNAME` and `SALESFORCE_PASSWORD` include the security token appended to the password (e.g. `mypassword` + `securitytoken` = `mypasswordsecuritytoken`).
+**Salesforce auth error**
+`SALESFORCE_PASSWORD` must include the security token appended to the end of the password (e.g. `mypasswordsecuritytoken`).
 
-**Trust Radar: live mode not working**
-Live mode requires a transcript provider that supports real-time polling (Gong). Fireflies and Zoom only support post-call. Set `mode: "post_call"` in your webhook payload to start.
+**Trust Radar: live mode**
+Live mode polls for in-progress transcripts. Start with `"mode": "post_call"` in your webhook payload — it's simpler and works with all transcript providers including Fireflies and Zoom.
 
 ---
 
 ## Provider Cheat Sheet
 
-| Category | Options | Key env var |
-|----------|---------|-------------|
+| Category | Options | Env var |
+|----------|---------|---------|
 | LLM | Anthropic, OpenAI | `LLM_PROVIDER=anthropic` or `openai` |
 | CRM | Salesforce, HubSpot | `CRM_PROVIDER=salesforce` or `hubspot` |
 | Transcripts | Gong, Fireflies, Zoom | `CALL_TRANSCRIPT_PROVIDER=gong` etc |
 | Support | Zendesk, Intercom | `SUPPORT_PROVIDER=zendesk` or `intercom` |
 | Analytics | Mixpanel, Amplitude | `ANALYTICS_PROVIDER=mixpanel` or `amplitude` |
 
-**You don't need all of them.** Each workflow's README lists which providers it actually uses.
+**You don't need all of them.** Every workflow accepts raw text directly in the payload — you can test without connecting any external provider. Wire up real integrations once the workflow is proven locally.
 
 ---
 
-## Minimum viable setup (fastest path to working)
+## Minimum Viable Test (no integrations at all)
 
-No CRM. No transcript provider. Just paste data directly in the webhook payload.
+Every workflow accepts raw text in the payload fields (`transcript_text`, `recent_activity`, `interaction_summary`, etc.). You can paste sample text directly and see real output immediately — no Gong, no Salesforce, no Zendesk needed.
 
-All 5 workflows accept raw text input via the payload fields (`transcript_text`, `recent_activity`, `interaction_summary`, etc.) — you don't have to connect Gong or Salesforce to get value immediately. Connect the real integrations later once the workflow is proven.
-
----
-
-## Local Testing Without Modal Auth
-
-You can test the core LLM logic without a Modal account by calling the LLM directly:
-
-```python
-import anthropic, os, json
-
-client = anthropic.Anthropic(api_key="your-key-here")
-
-resp = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
-    max_tokens=1000,
-    messages=[{"role": "user", "content": "YOUR PROMPT HERE"}]
-)
-print(resp.content[0].text)
-```
-
-This lets you validate the output quality before spending time on deployment.
+Start there. Connect real data sources once you've validated the output quality.
 
 ---
 
 ## Need Help?
 
-Built by [ExtensibleAgents.com](https://extensibleagents.com) — the agentic CS platform co-founded by Lincoln Murphy and Lewis Thompson.
+Built by [ExtensibleAgents](https://extensibleagents.com) — the agentic CS platform co-founded by Lincoln Murphy and Lewis Thompson.
 
-If you're stuck on setup or want help customising these workflows for your stack, visit [extensibleagents.com](https://extensibleagents.com).
+Visit **[extensibleagents.com](https://extensibleagents.com)** if you want help customising these for your stack or want to see a full agentic CS deployment.
