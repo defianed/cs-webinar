@@ -55,14 +55,14 @@ def call_llm(prompt: str) -> str:
         resp = client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", "gpt-4o"),
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=4000,
+            max_tokens=4096,
         )
         return resp.choices[0].message.content
     import anthropic
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     resp = client.messages.create(
         model=os.getenv("ANTHROPIC_MODEL", "claude-opus-4-6"),
-        max_tokens=4000,
+        max_tokens=4096,
         messages=[{"role": "user", "content": prompt}],
     )
     return resp.content[0].text

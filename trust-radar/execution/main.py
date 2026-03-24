@@ -858,7 +858,7 @@ Analyze this call and provide your classification as JSON."""
         try:
             resp = await client.messages.create(
                 model="claude-opus-4-6",
-                max_tokens=4000,
+                max_tokens=4096,
                 system=self.SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": user_message}],
             )
@@ -903,7 +903,7 @@ Analyze this call and provide your classification as JSON."""
                     {"role": "user", "content": user_message},
                 ],
                 response_format={"type": "json_object"},
-                max_tokens=4000,
+                max_tokens=4096,
             )
             
             content = resp.choices[0].message.content
