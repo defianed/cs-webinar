@@ -1,5 +1,8 @@
 # Local test — no Modal required. Run: python3 test.py
-import os, json
+# To run with live AI: python3 test.py --live
+import os, json, sys
+
+LIVE_MODE = "--live" in sys.argv
 
 try:
     from dotenv import load_dotenv
@@ -8,8 +11,69 @@ except ImportError:
     pass
 
 
+ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "Acme Corp")
+
+MOCK_OUTPUT = {
+    "account_overview": "Acme Corp is a 200-person fintech company that closed a $48K ACV deal. Sarah (VP Engineering) is the champion; Mike (CTO) holds budget. Deal closed faster than average — they were actively evaluating two other vendors.",
+    "customer_goals": [
+        "Reduce time-to-integrate from 3 weeks to under 5 days",
+        "Replace their current fragmented toolchain (3 tools → 1 platform)",
+        "Hit their Q3 product launch with the new API layer in place"
+    ],
+    "pain_points": [
+        "Previous vendor had good uptime but terrible support SLAs — left them stranded",
+        "Engineering team is stretched thin — any migration overhead is costly",
+        "Their CTO is skeptical of vendor commitments after being burned before"
+    ],
+    "commitments_made": [
+        "API will be GA by May 15 — confirmed with product",
+        "Dedicated onboarding engineer (Marcus) assigned for 30 days",
+        "Custom migration guide for their stack (Node.js + Postgres)"
+    ],
+    "objections_handled": [
+        "Security: SOC 2 Type II + pen test report shared and reviewed",
+        "Pricing: Agreed to milestone-based payment schedule",
+        "Migration effort: Committed to co-building migration guide"
+    ],
+    "key_stakeholders": [
+        {"name": "Sarah", "title": "VP Engineering", "role": "Champion — drove evaluation, day-to-day contact"},
+        {"name": "Mike", "title": "CTO", "role": "Economic buyer — skeptical, needs to see action not promises"},
+        {"name": "James", "title": "Senior DevOps", "role": "Will own the integration — address his operational concerns early"}
+    ],
+    "urgency_timeline": "Q3 launch deadline is hard. API GA date is May 15. First CSM call should happen within 48 hours of deal close.",
+    "watchouts": [
+        "Mike's skepticism is real — he's been burned before. Do not overpromise in early calls.",
+        "API GA date is tight. Confirm with product before first call and do not hedge.",
+        "James wasn't in the demo. He'll have his own concerns. Get him into the kickoff."
+    ],
+    "suggested_first_call_agenda": [
+        "1. Introduce Marcus (onboarding engineer) and confirm availability",
+        "2. Confirm API GA date and show it in writing",
+        "3. Walk through migration guide outline — get James involved",
+        "4. Set weekly check-in cadence through Q3 launch"
+    ]
+}
+
+
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
+
+
+def get_provider() -> str:
+    """Auto-detect provider from which key is actually set."""
+    explicit = os.getenv("LLM_PROVIDER", "").strip()
+    if explicit:
+        return explicit
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
+
+
+
 def call_llm(prompt: str) -> str:
-    provider = os.getenv("LLM_PROVIDER", "anthropic")
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -30,17 +94,13 @@ def call_llm(prompt: str) -> str:
 
 
 def build_brief(data: dict) -> dict:
-    prompt = f"""Create a JSON CSM handoff brief from the context below.
+    prompt = f"""Return JSON only.
+Create a CSM handoff brief from the sales context below.
 
 Context:
 {json.dumps(data, indent=2)}
 
-Return JSON with keys:
-customer_goals (list), pain_points (list), commitments_made (list), objections_raised (list),
-stakeholder_map (list), communication_style, onboarding_risks (list),
-first_call_agenda (list), top_3_watchouts (list), brief_summary.
-
-Return valid JSON only."""
+Return keys: account_overview, customer_goals (list), pain_points (list), commitments_made (list), objections_handled (list), key_stakeholders (list of objects with name/title/role), urgency_timeline, watchouts (list), suggested_first_call_agenda (list)."""
     raw = call_llm(prompt)
     for marker in ["```json", "```"]:
         if marker in raw:
@@ -49,64 +109,20 @@ Return valid JSON only."""
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {"brief_summary": raw, "top_3_watchouts": [], "customer_goals": []}
+        return {"account_overview": raw, "parse_error": True}
 
 
-sample = {
-    "account_name": os.getenv("ACCOUNT_NAME", "Acme Corp"),
-    "transcript_text": os.getenv("TRANSCRIPT_TEXT",
-        "Sales promised API access in month 1 and a custom onboarding doc within 2 weeks. "
-        "Customer's main goal is cutting manual onboarding time by 50%. "
-        "IT approval still needed for the API integration. "
-        "Champion Sarah is leaving in 6 weeks — need to build relationship with her replacement."),
-    "opportunity_id": os.getenv("OPPORTUNITY_ID", "OPP-001"),
-    "account_id": os.getenv("ACCOUNT_ID", "ACC-001"),
-}
+print(f"Testing Invisible Handoff with account: {ACCOUNT_NAME}\n")
 
-# --- No API key? Show mock output and exit ---
-if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
-    mock = {
-        "customer_goals": [
-            "Cut manual onboarding time by 50%",
-            "Replace manual CSV exports with API-driven workflow"
-        ],
-        "pain_points": [
-            "Current process requires 3 manual steps per account",
-            "No API access in current plan"
-        ],
-        "commitments_made": [
-            "API access delivered in month 1",
-            "Custom onboarding doc within 2 weeks of go-live"
-        ],
-        "objections_raised": [
-            "IT approval still required for API integration — not yet started"
-        ],
-        "stakeholder_map": [
-            "Sarah (Champion) — leaving in 6 weeks, need to identify replacement",
-            "IT team (Blocker) — must approve API integration before go-live"
-        ],
-        "communication_style": "Detail-oriented, prefers written summaries over verbal updates",
-        "onboarding_risks": [
-            "IT approval not secured — flag this in the first call",
-            "Champion Sarah departing in 6 weeks — relationship continuity at risk"
-        ],
-        "first_call_agenda": [
-            "Confirm onboarding timeline and API access date",
-            "Introduce CSM process and cadence",
-            "Identify IT contact for integration approval",
-            "Set 30/60/90 day success metrics"
-        ],
-        "top_3_watchouts": [
-            "IT approval not secured — make this the first priority",
-            "Sales promised custom onboarding doc — coordinate with solutions team immediately",
-            "Champion Sarah leaving in 6 weeks — start building relationship with her replacement now"
-        ],
-        "brief_summary": "Acme is focused on cutting manual ops work. Sales committed to API access and a custom onboarding doc. IT approval is the main blocker. Champion Sarah is engaged but leaving soon — prioritise getting a second contact before she goes."
+if not LIVE_MODE:
+    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
+    print(json.dumps(MOCK_OUTPUT, indent=2))
+else:
+    sample = {
+        "account_name": ACCOUNT_NAME,
+        "deal_value": os.getenv("DEAL_VALUE", "$48,000 ACV"),
+        "transcript_summary": os.getenv("TRANSCRIPT_SUMMARY", "Closed Won. Final call confirmed API GA, dedicated onboarding engineer, and milestone-based payments."),
+        "sales_rep_notes": os.getenv("SALES_REP_NOTES", "Champion is Sarah VP Eng. CTO Mike is skeptical. Q3 launch is hard deadline. Watch James in DevOps — wasn't in demo."),
     }
-    print(json.dumps(mock, indent=2))
-    raise SystemExit(0)
-
-print(f"Testing Invisible Handoff with account: {sample['account_name']}\n")
-result = build_brief(sample)
-print(json.dumps(result, indent=2))
+    result = build_brief(sample)
+    print(json.dumps(result, indent=2))

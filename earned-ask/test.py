@@ -1,15 +1,46 @@
 # Local test — no Modal required. Run: python3 test.py
-import os, json
+# To run with live AI: python3 test.py --live
+import os, json, sys
+
+LIVE_MODE = "--live" in sys.argv
 
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    pass  # Use env vars already set in shell
+    pass
+
+
+ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "Acme Corp")
+
+MOCK_OUTPUT = {
+    "should_ask": True,
+    "reason": "Acme Corp hit their go-live milestone ahead of schedule, their champion mentioned they'd recommend the product to peers, and they submitted a 9 NPS yesterday. This is a genuine earned ask.",
+    "subject_line": "Quick favour — would mean a lot",
+    "email_body": "Hi [Champion Name],\n\nJust wanted to say — watching your team hit go-live ahead of schedule was genuinely one of those moments that reminds me why I love this work.\n\nIf you've got 2 minutes, would you mind leaving us a review on G2? Even a sentence about what's worked would make a big difference for us.\n\n[G2 Review Link]\n\nNo pressure at all — and thanks again for being such a great partner through the onboarding.\n\n[CSM Name]",
+    "csm_notes": "This is an earned ask. Send it. Don't overthink it. They gave you a 9 NPS and their champion is already promoting you internally."
+}
+
+
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
+
+
+def get_provider() -> str:
+    """Auto-detect provider from which key is actually set."""
+    explicit = os.getenv("LLM_PROVIDER", "").strip()
+    if explicit:
+        return explicit
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
+
 
 
 def call_llm(prompt: str) -> str:
-    provider = os.getenv("LLM_PROVIDER", "anthropic")
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -48,26 +79,17 @@ Return keys: should_ask (bool), reason, subject_line, email_body, csm_notes."""
         return {"should_ask": False, "reason": "Parse error", "raw": raw[:500]}
 
 
-sample = {
-    "account_name": os.getenv("ACCOUNT_NAME", "Acme Corp"),
-    "milestone_achieved": os.getenv("MILESTONE_ACHIEVED", "Customer went live ahead of schedule, first full month complete"),
-    "interaction_summary": os.getenv("INTERACTION_SUMMARY", "Champion said she would recommend us to peers on last QBR"),
-    "sentiment_summary": os.getenv("SENTIMENT_SUMMARY", "NPS 9 submitted yesterday, recent tickets resolved same-day"),
-}
+print(f"Testing Earned Ask with account: {ACCOUNT_NAME}\n")
 
-# --- No API key? Show mock output and exit ---
-if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
-    mock = {
-        "should_ask": True,
-        "reason": "Customer just hit a major milestone (went live ahead of schedule), champion expressed intent to recommend peers, and NPS is 9. This is the ideal moment — positive sentiment is high and the value is fresh in their mind.",
-        "subject_line": "Quick favour from one of our favourite customers?",
-        "email_body": "Hi Sarah,\n\nReally glad to hear the first month went so well — going live ahead of schedule is no small thing, and it reflects how seriously your team took the rollout.\n\nWe're building out our G2 profile and a review from you would mean a lot right now. Takes about 3 minutes and I can send you a direct link.\n\nOnly if you're happy to — no pressure at all.\n\n[Your name]",
-        "csm_notes": "Sarah is warm and has already said she'd recommend us. Send this week while the momentum is fresh. If she agrees, send the G2 link directly. Don't wait more than 5 days."
+if not LIVE_MODE:
+    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
+    print(json.dumps(MOCK_OUTPUT, indent=2))
+else:
+    sample = {
+        "account_name": ACCOUNT_NAME,
+        "milestone_achieved": os.getenv("MILESTONE_ACHIEVED", "Customer went live ahead of schedule, first full month complete"),
+        "interaction_summary": os.getenv("INTERACTION_SUMMARY", "Champion said she would recommend us to peers on last QBR"),
+        "sentiment_summary": os.getenv("SENTIMENT_SUMMARY", "NPS 9 submitted yesterday, recent tickets resolved same-day"),
     }
-    print(json.dumps(mock, indent=2))
-    raise SystemExit(0)
-
-print(f"Testing Earned Ask with account: {sample['account_name']}\n")
-result = build_review_request(sample)
-print(json.dumps(result, indent=2))
+    result = build_review_request(sample)
+    print(json.dumps(result, indent=2))

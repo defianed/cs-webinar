@@ -1,11 +1,61 @@
 # Local test — no Modal required. Run: python3 test.py
-import os, json
+# To run with live AI: python3 test.py --live
+import os, json, sys
+
+LIVE_MODE = "--live" in sys.argv
 
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
+
+
+ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "Acme Corp")
+
+MOCK_OUTPUT = {
+    "classification": "NEGOTIATING",
+    "confidence": 0.79,
+    "reasoning": "The customer's frustration is real — three missed commitments is legitimately damaging — but the language pattern is classic negotiation, not relationship exit. The conditional offer at 11:04 ('If you can get the API live this week... I'll hold off the evaluation') is the tell. Someone who has genuinely lost trust doesn't give you an out. They leave. She's giving you a very specific, actionable bar to clear.",
+    "evidence_snippets": [
+        {
+            "timestamp": "08:45",
+            "speaker": "Sarah",
+            "text": "You've missed three commitments in a row. The API was supposed to be live in January. It's March.",
+            "signal_type": "genuine_frustration",
+            "confidence": 0.92
+        },
+        {
+            "timestamp": "10:02",
+            "speaker": "Sarah",
+            "text": "We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.",
+            "signal_type": "negotiation_leverage",
+            "confidence": 0.85
+        },
+        {
+            "timestamp": "11:04",
+            "speaker": "Sarah",
+            "text": "If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.",
+            "signal_type": "conditional_opening",
+            "confidence": 0.88
+        },
+        {
+            "timestamp": "11:52",
+            "speaker": "Sarah",
+            "text": "Okay. But I mean it — this is the last chance.",
+            "signal_type": "urgency_signal",
+            "confidence": 0.75
+        }
+    ],
+    "response_strategy": "Do not get defensive. Do not hedge. Go away from this call and confirm the API date with engineering today. Come back within 24 hours with: (1) confirmed API GA date in writing, (2) written commitment on the next two milestones with specific dates, (3) a weekly sync with PM present. She's given you a specific bar — clear it.",
+    "urgency_score": 8,
+    "recommended_actions": [
+        "Confirm API GA date with engineering before end of day",
+        "Draft written commitment letter — specific dates, no ranges",
+        "Schedule follow-up within 24 hours — bring PM",
+        "Propose PM-led weekly milestone syncs until resolved"
+    ]
+}
 
 SYSTEM_PROMPT = """You are an expert CS analyst specialising in trust signals during win-back and escalation calls.
 
@@ -21,8 +71,25 @@ evidence_snippets (list of {timestamp, speaker, text, signal_type, confidence}),
 response_strategy, urgency_score (1-10), recommended_actions (list)."""
 
 
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
+
+
+def get_provider() -> str:
+    """Auto-detect provider from which key is actually set."""
+    explicit = os.getenv("LLM_PROVIDER", "").strip()
+    if explicit:
+        return explicit
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
+
+
+
 def call_llm(system: str, user: str) -> str:
-    provider = os.getenv("LLM_PROVIDER", "anthropic")
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -65,41 +132,21 @@ def analyse_trust(data: dict) -> dict:
         }
 
 
-sample = {
-    "customer_name": os.getenv("ACCOUNT_NAME", "Acme Corp"),
-    "transcript": os.getenv("TRANSCRIPT_TEXT",
-        "[08:45] Sarah: You've missed three commitments in a row. The API was supposed to be live in January. It's March.\n"
-        "[09:15] Sarah: We built our entire Q1 onboarding workflow around that API. We had to do everything manually.\n"
-        "[10:02] Sarah: We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.\n"
-        "[10:31] Sarah: I don't know. Maybe. But I need to see action, not promises.\n"
-        "[11:04] Sarah: If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.\n"
-        "[11:52] Sarah: Okay. But I mean it — this is the last chance."),
-}
+print(f"Testing Trust Radar with account: {ACCOUNT_NAME}\n")
 
-# --- No API key? Show mock output and exit ---
-if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
-    mock = {
-        "classification": "MIXED",
-        "confidence": 0.78,
-        "reasoning": "Customer has expressed genuine frustration over missed commitments (three in a row, citing specific dates) but also stated explicit conditions under which they would stay. The conditional language at 11:04 ('if you can get the API live this week... I'll hold off') signals active negotiation alongside real trust damage. This is not pure churn intent.",
-        "evidence_snippets": [
-            {"timestamp": "08:45", "speaker": "Sarah", "text": "You've missed three commitments in a row. The API was supposed to be live in January. It's March.", "signal_type": "broken_promise", "confidence": 0.95},
-            {"timestamp": "10:02", "speaker": "Sarah", "text": "We're actively evaluating Salesforce and HubSpot right now.", "signal_type": "churn_threat", "confidence": 0.85},
-            {"timestamp": "11:04", "speaker": "Sarah", "text": "If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.", "signal_type": "negotiating", "confidence": 0.82}
-        ],
-        "response_strategy": "Acknowledge the broken commitments directly — do not minimise or explain away. Then present a concrete, written commitment plan with dates. The customer has given you a specific condition: meet it or lose the account.",
-        "urgency_score": 8,
-        "recommended_actions": [
-            "Deliver API access this week — that is the stated condition for staying",
-            "Send a written commitment plan covering the next 3 milestones with dates",
-            "Request a follow-up call within 48 hours to confirm progress",
-            "Do not discuss pricing or concessions until trust is rebuilt"
-        ]
+if not LIVE_MODE:
+    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
+    print(json.dumps(MOCK_OUTPUT, indent=2))
+else:
+    sample = {
+        "customer_name": ACCOUNT_NAME,
+        "transcript": os.getenv("TRANSCRIPT_TEXT",
+            "[08:45] Sarah: You've missed three commitments in a row. The API was supposed to be live in January. It's March.\n"
+            "[09:15] Sarah: We built our entire Q1 onboarding workflow around that API. We had to do everything manually.\n"
+            "[10:02] Sarah: We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.\n"
+            "[10:31] Sarah: I don't know. Maybe. But I need to see action, not promises.\n"
+            "[11:04] Sarah: If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.\n"
+            "[11:52] Sarah: Okay. But I mean it — this is the last chance."),
     }
-    print(json.dumps(mock, indent=2))
-    raise SystemExit(0)
-
-print(f"Testing Trust Radar with account: {sample['customer_name']}\n")
-result = analyse_trust(sample)
-print(json.dumps(result, indent=2))
+    result = analyse_trust(sample)
+    print(json.dumps(result, indent=2))

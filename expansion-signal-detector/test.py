@@ -1,5 +1,8 @@
 # Local test — no Modal required. Run: python3 test.py
-import os, json
+# To run with live AI: python3 test.py --live
+import os, json, sys
+
+LIVE_MODE = "--live" in sys.argv
 
 try:
     from dotenv import load_dotenv
@@ -8,8 +11,50 @@ except ImportError:
     pass
 
 
+ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "ScaleUp Ltd")
+
+MOCK_OUTPUT = {
+    "expansion_ready": True,
+    "confidence": 0.81,
+    "buying_signals": [
+        "Mentioned rolling platform out to sales team next quarter",
+        "At 95 of 100 seat capacity — naturally approaching plan limits",
+        "Champion said 'this has transformed how we work'",
+        "Proactively asked about pricing for additional seats"
+    ],
+    "blockers": [
+        "Budget cycle restarts in Q3 — may need to wait for approval",
+        "Current integration issue should be resolved first to avoid risk"
+    ],
+    "recommended_timing": "Initiate expansion conversation in 3-4 weeks once integration is resolved and Q3 budget opens",
+    "next_steps": [
+        "Get the integration ticket closed this week",
+        "Prepare a custom expansion quote based on their stated headcount plans",
+        "Schedule a dedicated expansion call — don't do this as an add-on to a check-in"
+    ],
+    "rationale": "ScaleUp is organically growing into expansion: they're near plan limits, the champion is vocal about ROI, and they're already thinking about broader rollout. The only thing holding this back is the integration issue and budget timing — both solvable."
+}
+
+
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
+
+
+def get_provider() -> str:
+    """Auto-detect provider from which key is actually set."""
+    explicit = os.getenv("LLM_PROVIDER", "").strip()
+    if explicit:
+        return explicit
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
+
+
+
 def call_llm(prompt: str) -> str:
-    provider = os.getenv("LLM_PROVIDER", "anthropic")
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -31,12 +76,12 @@ def call_llm(prompt: str) -> str:
 
 def detect_expansion_signals(data: dict) -> dict:
     prompt = f"""Return JSON only.
-Analyse the transcript and notes for expansion readiness signals.
+Analyse this account context for expansion readiness signals.
 
 Context:
 {json.dumps(data, indent=2)}
 
-Return keys: ready_for_expansion (bool), confidence (high/medium/low), buying_signals (list), blockers (list), recommended_next_action, summary."""
+Return keys: expansion_ready (bool), confidence (0.0-1.0), buying_signals (list), blockers (list), recommended_timing, next_steps (list), rationale."""
     raw = call_llm(prompt)
     for marker in ["```json", "```"]:
         if marker in raw:
@@ -45,37 +90,20 @@ Return keys: ready_for_expansion (bool), confidence (high/medium/low), buying_si
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {"ready_for_expansion": False, "confidence": "low", "buying_signals": [], "blockers": [], "recommended_next_action": "Manual review", "summary": raw}
+        return {"expansion_ready": False, "confidence": 0.0, "rationale": f"Parse error.", "buying_signals": [], "blockers": [], "recommended_timing": "unknown", "next_steps": []}
 
 
-sample = {
-    "account_name": os.getenv("ACCOUNT_NAME", "ScaleUp Ltd"),
-    "transcript_text": os.getenv("TRANSCRIPT_TEXT", "We're rolling out to the EMEA team next quarter and want to understand your enterprise tier pricing. Also asked about multi-region support and bringing the finance team on."),
-    "post_call_notes": os.getenv("POST_CALL_NOTES", "Customer proactively asked about API rate limits, suggesting higher volume needs."),
-}
+print(f"Testing Expansion Signal Detector with account: {ACCOUNT_NAME}\n")
 
-# --- No API key? Show mock output and exit ---
-if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
-    mock = {
-        "ready_for_expansion": True,
-        "confidence": "high",
-        "buying_signals": [
-            "Explicitly asked about enterprise tier pricing",
-            "Mentioned EMEA rollout planned for next quarter",
-            "Asked about API rate limits — suggests higher volume needs",
-            "Referenced bringing the finance team on"
-        ],
-        "blockers": [
-            "Multi-region support availability not confirmed",
-            "Budget approval may be required"
-        ],
-        "recommended_next_action": "Schedule a discovery call focused on enterprise tier — customer is signalling intent. Come prepared with volume pricing and multi-region specs.",
-        "summary": "ScaleUp Ltd is showing strong expansion signals. They are planning a full EMEA rollout next quarter and proactively asked about enterprise features and API limits. High-confidence expansion opportunity — act within 2 weeks."
+if not LIVE_MODE:
+    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
+    print(json.dumps(MOCK_OUTPUT, indent=2))
+else:
+    sample = {
+        "account_name": ACCOUNT_NAME,
+        "transcript_snippets": os.getenv("TRANSCRIPT_SNIPPETS", "We're rolling this out to the sales team next quarter... this has transformed our workflow... asked about pricing for 20 more seats"),
+        "post_call_notes": os.getenv("POST_CALL_NOTES", "Champion mentioned they're at 95 seats and approaching their limit. Discussed expansion pricing briefly. Budget opens in Q3."),
+        "usage_summary": os.getenv("USAGE_SUMMARY", "95 of 100 seats active. API calls up 40% month-over-month. 3 power users in engineering team."),
     }
-    print(json.dumps(mock, indent=2))
-    raise SystemExit(0)
-
-print(f"Testing Expansion Signal Detector with account: {sample['account_name']}\n")
-result = detect_expansion_signals(sample)
-print(json.dumps(result, indent=2))
+    result = detect_expansion_signals(sample)
+    print(json.dumps(result, indent=2))

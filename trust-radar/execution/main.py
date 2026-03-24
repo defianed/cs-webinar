@@ -50,14 +50,14 @@ class Config:
     SALESFORCE_CLIENT_SECRET = os.getenv("SALESFORCE_CLIENT_SECRET")
     SALESFORCE_USERNAME = os.getenv("SALESFORCE_USERNAME")
     SALESFORCE_PASSWORD = os.getenv("SALESFORCE_PASSWORD")
-    HUBSPOT_API_KEY = os.getenv("HUBSPOT_API_KEY")
+    HUBSPOT_PRIVATE_APP_TOKEN = os.getenv("HUBSPOT_PRIVATE_APP_TOKEN")
     
     # Call Transcript Provider
     CALL_TRANSCRIPT_PROVIDER = os.getenv("CALL_TRANSCRIPT_PROVIDER", "gong")  # gong | fireflies | zoom
     GONG_ACCESS_KEY = os.getenv("GONG_ACCESS_KEY")
     GONG_SECRET_KEY = os.getenv("GONG_SECRET_KEY")
     FIREFLIES_API_KEY = os.getenv("FIREFLIES_API_KEY")
-    ZOOM_JWT_TOKEN = os.getenv("ZOOM_JWT_TOKEN")
+    ZOOM_OAUTH_TOKEN = os.getenv("ZOOM_OAUTH_TOKEN")
     
     # Support Provider
     SUPPORT_PROVIDER = os.getenv("SUPPORT_PROVIDER", "zendesk")  # zendesk | intercom
@@ -323,7 +323,7 @@ class HubSpotProvider(CRMProvider):
     """HubSpot CRM integration."""
     
     def __init__(self):
-        self.api_key = Config.HUBSPOT_API_KEY
+        self.api_key = Config.HUBSPOT_PRIVATE_APP_TOKEN
     
     async def get_customer_context(self, customer_id: str) -> CRMContext:
         """Fetch customer context from HubSpot."""
@@ -548,7 +548,7 @@ class ZoomProvider(TranscriptProvider):
     """Zoom transcript integration."""
     
     def __init__(self):
-        self.jwt_token = Config.ZOOM_JWT_TOKEN
+        self.jwt_token = Config.ZOOM_OAUTH_TOKEN
     
     async def get_transcript(self, call_id: str, partial: bool = False) -> CallTranscript:
         """Fetch transcript from Zoom."""
