@@ -238,13 +238,28 @@ def main():
     # ─────────────────────────────────────────────
     header("Step 5 — Where Should Results Be Sent?")
 
+    print("  Where do you want workflow results delivered?")
+    print("  These workflows can push output anywhere you can receive a webhook or API call.")
+    print()
+    print("  Ideas:")
+    print("    • Slack — post to #cs-alerts or DM the CSM directly")
+    print("    • Notion — create a page per account automatically")
+    print("    • Email — send a summary to the account owner")
+    print("    • Your CRM — log as a note or activity on the account")
+    print("    • Google Sheets — append a row per run")
+    print("    • Webhook — POST to any tool (Zapier, Make, n8n, HubSpot, Salesforce)")
+    print("    • Terminal only — just print the output, you handle the rest")
+    print()
+    print("  For now, we'll set up Slack (easiest to start) and/or Notion.")
+    print("  You can always add other outputs later by editing the workflow code.")
+    print()
     output_dest = ask_choice(
-        "Where do you want workflow results delivered?",
+        "Set up now:",
         [
-            ("slack", "Slack (recommended — results posted to a channel)"),
-            ("notion", "Notion (results saved as pages)"),
+            ("slack", "Slack"),
+            ("notion", "Notion"),
             ("both", "Both Slack and Notion"),
-            ("terminal", "Terminal only (no external push)"),
+            ("terminal", "Skip for now — just print to terminal"),
         ],
         default="slack"
     )
