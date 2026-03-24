@@ -1,56 +1,72 @@
 # Trust Radar
 
-Analyses win-back and escalation call transcripts to determine whether a customer is showing genuine loss of trust or applying commercial negotiation pressure — then tells the CSM what to do.
+Analyses win-back and escalation call transcripts to determine: genuine loss of trust, or commercial negotiation pressure?
+
+Gives the CSM a defensible read before they respond.
+
+## Three ways to run
+
+| Mode | Command | Requires |
+|---|---|---|
+| Instant demo | `python3 test.py` | Nothing |
+| Local real run | `python3 local.py` | API key in `.env` |
+| Cloud deploy | `modal deploy execution/main.py` | Modal account |
+
+## Quickstart
+
+```bash
+# Step 1: Install dependencies
+pip install -r requirements.txt
+
+# Step 2: See it work immediately (sample data, no API key needed)
+python3 test.py
+
+# Step 3: Set up your API key
+cp .env.example .env
+# Edit .env — add ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+
+# Step 4: Run with real AI locally
+python3 local.py
+```
 
 ## What it does
 
-The Trust Radar classifies calls into one of four verdicts:
-- `GENUINE_LOSS_OF_TRUST` — real relationship damage; repair trust before anything commercial
+Classifies calls into one of four verdicts:
+- `GENUINE_LOSS_OF_TRUST` — repair trust before anything commercial
 - `NEGOTIATING` — using frustration as leverage; hold the line or make a targeted concession
 - `MIXED` — both signals present; nuanced response needed
 - `UNCLEAR` — insufficient signal; listen more before acting
 
-It provides evidence snippets from the transcript, a confidence score, and a concrete recommended response strategy.
-
-## Quickstart (3 steps)
-
-1. **Clone the repo** (if you haven't already)
-2. **Copy the example environment file:**
-   ```bash
-   cp .env.example .env
-   ```
-   Then add your `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) to the `.env` file.
-3. **Run the test:**
-   ```bash
-   python3 test.py
-   ```
-
-That's it! You'll see output immediately — even without API keys. To run with live AI:
-
-```bash
-python3 test.py --live
-```
-
 ## What you get
 
-- Classification verdict with confidence score
-- Evidence snippets from the transcript with signal type
-- Response strategy (specific, actionable)
-- Urgency score (1-10)
-- Recommended next actions
+```json
+{
+  "classification": "NEGOTIATING",
+  "confidence": 0.79,
+  "reasoning": "...",
+  "evidence_snippets": [{"timestamp": "...", "text": "...", "signal_type": "..."}],
+  "response_strategy": "Specific and actionable",
+  "urgency_score": 8,
+  "recommended_actions": ["..."]
+}
+```
+
+## Customising the input
+
+Edit `.env` or set environment variables:
+```
+ACCOUNT_NAME=Acme Corp
+TRANSCRIPT_TEXT=[08:45] Sarah: You've missed three commitments...
+```
 
 ## Environment variables
 
-See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) and `SLACK_BOT_TOKEN` are required to run.
+See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) and `SLACK_BOT_TOKEN` are required.
 
-Live CRM integration (Salesforce, HubSpot), transcript providers (Gong, Fireflies, Zoom), and support systems (Zendesk, Intercom) are optional.
+Live CRM (Salesforce, HubSpot), transcript (Gong, Fireflies, Zoom), and support integrations (Zendesk, Intercom) are optional.
 
-**Note on Salesforce:** Connecting live Salesforce data may require custom field mapping depending on your org's schema. Review `execution/main.py` adapter classes before enabling.
+**Note on Salesforce:** Live Salesforce integration may require custom field mapping for your org schema.
 
-## Updated environment variable names
-
-This workflow uses:
+**Updated env var names:**
 - `HUBSPOT_PRIVATE_APP_TOKEN` (not `HUBSPOT_API_KEY`)
 - `ZOOM_OAUTH_TOKEN` (not `ZOOM_JWT_TOKEN`)
-
-Ensure your `.env` uses these names.

@@ -2,59 +2,64 @@
 
 Turns recent customer activity into a plain-language churn risk narrative before a QBR or renewal call.
 
-## What it does
+Not a health score. An actual story you can use in the conversation.
 
-This intelligent text-processing workflow analyses account activity, support friction, and engagement changes to build a narrative explaining what is driving current churn risk. It highlights stabilizers and the most important next-call focus areas.
+## Three ways to run
 
-## Quickstart (3 steps)
+| Mode | Command | Requires |
+|---|---|---|
+| Instant demo | `python3 test.py` | Nothing |
+| Local real run | `python3 local.py` | API key in `.env` |
+| Cloud deploy | `modal deploy execution/main.py` | Modal account |
 
-1. **Clone the repo** (if you haven't already)
-2. **Copy the example environment file:**
-   ```bash
-   cp .env.example .env
-   ```
-   Then add your `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) to the `.env` file.
-3. **Run the test:**
-   ```bash
-   python3 test.py
-   ```
-
-That's it! You'll see output immediately — even without API keys (sample data is provided).
-
-## Running locally
+## Quickstart
 
 ```bash
+# Step 1: Install dependencies
+pip install -r requirements.txt
+
+# Step 2: See it work immediately (sample data, no API key needed)
 python3 test.py
+
+# Step 3: Set up your API key
+cp .env.example .env
+# Edit .env — add ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+
+# Step 4: Run with real AI locally
+python3 local.py
 ```
 
-The test works without any API credentials by showing realistic sample output. To see live LLM-generated results, add your API key to `.env`.
+## What it does
 
-## Environment variables
-
-See `.env.example` for all options. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) is required for live results.
+Analyses account activity, support friction, and engagement changes to build a narrative explaining what is driving current churn risk. Highlights stabilisers and the most important next-call focus areas.
 
 ## What you get
 
-A structured risk assessment including:
-- Plain-language risk story
-- Primary risks (list)
-- Stabilizers (positive factors)
-- Next call focus areas
-- Urgency level
+```json
+{
+  "summary": "One-sentence read on the account",
+  "risk_story": "Plain-language narrative — use this in your next call",
+  "primary_risks": ["..."],
+  "stabilizers": ["..."],
+  "next_call_focus": ["..."],
+  "urgency": "high / medium / low"
+}
+```
 
-## Deploying to production
+## Customising the input
 
-This workflow is designed as an intelligent text processor. To connect live data sources:
-
-1. Set up CRM, support, and analytics integrations in `.env`
-2. Deploy with Modal: `modal deploy execution/main.py`
-3. Trigger via webhook or schedule
-
-## Providers supported
-
-- LLM: Anthropic (Claude) or OpenAI (GPT-4)
-- Optional integrations: Salesforce, HubSpot, Zendesk, Intercom, Mixpanel, Amplitude
+Edit `.env` or set environment variables:
+```
+ACCOUNT_NAME=Acme Corp
+RECENT_ACTIVITY=Login frequency dropped 40%...
+SUPPORT_SUMMARY=3 tickets in past 30 days...
+ENGAGEMENT_SUMMARY=Skipped last 2 check-ins...
+```
 
 ## Note
 
-This workflow processes text inputs to generate risk narratives. Live CRM/support integrations are optional — you can feed it data manually or via API.
+This workflow processes text inputs (activity summaries, support notes, engagement data). It does not connect directly to CRM or support systems out of the box — you feed it the context, it generates the narrative.
+
+## Environment variables
+
+See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) is required.

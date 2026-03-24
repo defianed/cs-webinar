@@ -1,52 +1,66 @@
 # Invisible Handoff
 
-Turns the context from a Closed Won sales call into a structured CSM handoff brief — so the customer never has to repeat themselves.
+Turns a Closed Won deal into a structured CSM handoff brief — so the customer never has to repeat themselves.
+
+## Three ways to run
+
+| Mode | Command | Requires |
+|---|---|---|
+| Instant demo | `python3 test.py` | Nothing |
+| Local real run | `python3 local.py` | API key in `.env` |
+| Cloud deploy | `modal deploy execution/main.py` | Modal account |
+
+## Quickstart
+
+```bash
+# Step 1: Install dependencies
+pip install -r requirements.txt
+
+# Step 2: See it work immediately (sample data, no API key needed)
+python3 test.py
+
+# Step 3: Set up your API key
+cp .env.example .env
+# Edit .env — add ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+
+# Step 4: Run with real AI locally
+python3 local.py
+```
 
 ## What it does
 
-This workflow takes the sales context you already have — transcript snippets, close notes, implementation context, or a written sales summary — and turns it into a structured CSM handoff brief covering what the customer cares about, what was promised, key stakeholders, watchouts, and a suggested first-call agenda.
-
-It's designed to be useful immediately: paste in your sales notes, run the test, and see the kind of brief a CSM would receive.
-
-## Quickstart (3 steps)
-
-1. **Clone the repo** (if you haven't already)
-2. **Copy the example environment file:**
-   ```bash
-   cp .env.example .env
-   ```
-   Then add your `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) to the `.env` file.
-3. **Run the test:**
-   ```bash
-   python3 test.py
-   ```
-
-That's it! You'll see output immediately — even without API keys. To run with live AI:
-
-```bash
-python3 test.py --live
-```
+Takes sales call notes and context, then generates a structured handoff brief covering: what the customer cares about, what was promised, key stakeholders, watchouts, and a suggested first-call agenda.
 
 ## What you get
 
-- Account overview
-- Customer goals and pain points
-- Commitments and objections handled in sales
-- Key stakeholder map
-- Watchouts for the CSM
-- Suggested first-call agenda
+```json
+{
+  "account_overview": "...",
+  "customer_goals": ["..."],
+  "pain_points": ["..."],
+  "commitments_made": ["..."],
+  "objections_handled": ["..."],
+  "key_stakeholders": [{"name": "...", "title": "...", "role": "..."}],
+  "urgency_timeline": "...",
+  "watchouts": ["..."],
+  "suggested_first_call_agenda": ["..."]
+}
+```
+
+## Customising the input
+
+Edit `.env` or set environment variables:
+```
+ACCOUNT_NAME=Acme Corp
+DEAL_VALUE=$48,000 ACV
+TRANSCRIPT_SUMMARY=Closed Won. Final call confirmed API GA...
+SALES_REP_NOTES=Champion is Sarah VP Eng. Q3 launch is hard deadline...
+```
+
+## Note on live integrations
+
+CRM and transcript integrations (Salesforce, HubSpot, Gong, Fireflies) are available as configurable adapters in `execution/main.py`. The local path (`local.py`) works without them.
 
 ## Environment variables
 
-See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) and `SLACK_BOT_TOKEN` are required to run the full webhook path.
-
-`NOTION_API_KEY` and `NOTION_PARENT_PAGE_ID` are optional if you want the brief written to Notion.
-
-## How to use it in practice
-
-You can use this workflow in two ways:
-
-1. **Beginner / manual-input mode** — paste transcript text, close notes, or a written sales summary into the payload or test file.
-2. **Connected mode** — wire your own CRM / transcript source upstream and pass the resulting text into this workflow.
-
-That keeps the workflow tool-agnostic without pretending it ships with live provider adapters out of the box.
+See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) is required for the local path.

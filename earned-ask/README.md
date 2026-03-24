@@ -1,41 +1,64 @@
 # Earned Ask
 
-Detects whether a customer has genuinely earned a review request, then drafts the email for a CSM to send.
+Detects whether a customer has genuinely earned a review request, then drafts the email for your CSM to send.
+
+Never ask for a review at the wrong moment again.
+
+## Three ways to run
+
+| Mode | Command | Requires |
+|---|---|---|
+| Instant demo | `python3 test.py` | Nothing |
+| Local real run | `python3 local.py` | API key in `.env` |
+| Cloud deploy | `modal deploy execution/main.py` | Modal account |
+
+## Quickstart
+
+```bash
+# Step 1: Install dependencies
+pip install -r requirements.txt
+
+# Step 2: See it work immediately (sample data, no API key needed)
+python3 test.py
+
+# Step 3: Set up your API key
+cp .env.example .env
+# Edit .env — add ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+
+# Step 4: Run with real AI locally
+python3 local.py
+```
 
 ## What it does
 
-This intelligent text-processing workflow analyses recent interaction context, milestones achieved, and sentiment signals to decide if the timing is right to ask for a review. If yes, it drafts the review request email.
-
-## Quickstart (3 steps)
-
-1. **Clone the repo** (if you haven't already)
-2. **Copy the example environment file:**
-   ```bash
-   cp .env.example .env
-   ```
-   Then add your `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) to the `.env` file.
-3. **Run the test:**
-   ```bash
-   python3 test.py
-   ```
-
-That's it! You'll see output immediately — even without API keys (sample output is provided). To run with live AI:
-
-```bash
-python3 test.py --live
-```
+Analyses interaction context, milestone evidence, and sentiment signals to decide whether this is the right moment to ask for a review. If yes, drafts the email for the CSM to approve and send.
 
 ## What you get
 
-- `should_ask` — yes or no with reasoning
-- `subject_line` — ready-to-use email subject
-- `email_body` — draft email for the CSM to review and send
-- `csm_notes` — context for the CSM
+```json
+{
+  "should_ask": true,
+  "reason": "Why now is the right moment",
+  "subject_line": "Quick favour — would mean a lot",
+  "email_body": "Ready-to-send draft...",
+  "csm_notes": "Context for the CSM"
+}
+```
+
+## Customising the input
+
+Edit `.env` or set environment variables:
+```
+ACCOUNT_NAME=Acme Corp
+MILESTONE_ACHIEVED=Went live ahead of schedule
+INTERACTION_SUMMARY=Champion offered to recommend us to peers
+SENTIMENT_SUMMARY=NPS 9, tickets resolved same-day
+```
 
 ## Note
 
-This workflow processes text inputs to generate a recommendation and email draft. The CSM always reviews the output before sending. No automated emails are sent.
+The CSM always reviews and approves before sending. This workflow drafts the email — it does not send it.
 
 ## Environment variables
 
-See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) is required for live results.
+See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) is required.

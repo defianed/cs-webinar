@@ -23,7 +23,7 @@ def call_llm(prompt: str) -> str:
         return client.responses.create(model=_env("OPENAI_MODEL", "gpt-4.1-mini"), input=prompt).output_text
     import anthropic
     client = anthropic.Anthropic(api_key=_env("ANTHROPIC_API_KEY"))
-    resp = client.messages.create(model=_env("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022"), max_tokens=1400, messages=[{"role": "user", "content": prompt}])
+    resp = client.messages.create(model=_env("ANTHROPIC_MODEL", "claude-opus-4-6"), max_tokens=1400, messages=[{"role": "user", "content": prompt}])
     return resp.content[0].text
 
 

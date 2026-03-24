@@ -1,8 +1,11 @@
-# Local test — no Modal required. Run: python3 test.py
-# To run with live AI: python3 test.py --live
-import os, json, sys
+#!/usr/bin/env python3
+"""
+Earned Ask — local runner (no Modal required)
+Run: python3 local.py
 
-LIVE_MODE = "--live" in sys.argv
+Runs the full workflow logic locally. Requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env
+"""
+import os, json, sys
 
 try:
     from dotenv import load_dotenv
@@ -11,32 +14,12 @@ except ImportError:
     pass
 
 
-ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "Acme Corp")
-
-MOCK_OUTPUT = {
-    "should_ask": True,
-    "reason": "Acme Corp hit their go-live milestone ahead of schedule, their champion mentioned they'd recommend the product to peers, and they submitted a 9 NPS yesterday. This is a genuine earned ask.",
-    "subject_line": "Quick favour — would mean a lot",
-    "email_body": "Hi [Champion Name],\n\nJust wanted to say — watching your team hit go-live ahead of schedule was genuinely one of those moments that reminds me why I love this work.\n\nIf you've got 2 minutes, would you mind leaving us a review on G2? Even a sentence about what's worked would make a big difference for us.\n\n[G2 Review Link]\n\nNo pressure at all — and thanks again for being such a great partner through the onboarding.\n\n[CSM Name]",
-    "csm_notes": "This is an earned ask. Send it. Don't overthink it. They gave you a 9 NPS and their champion is already promoting you internally."
-}
-
-
-def has_api_key() -> bool:
-    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
-
-
-def get_provider() -> str:
-    """Auto-detect provider from which key is actually set."""
-    explicit = os.getenv("LLM_PROVIDER", "").strip()
-    if explicit:
-        return explicit
+def get_provider():
     if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
-        return "anthropic"
+        return os.getenv("LLM_PROVIDER", "anthropic")
     if (os.getenv("OPENAI_API_KEY") or "").strip():
         return "openai"
-    return "anthropic"
-
+    return None
 
 
 def call_llm(prompt: str) -> str:
@@ -79,17 +62,26 @@ Return keys: should_ask (bool), reason, subject_line, email_body, csm_notes."""
         return {"should_ask": False, "reason": "Parse error", "raw": raw[:500]}
 
 
-print(f"Testing Earned Ask with account: {ACCOUNT_NAME}\n")
+def main():
+    provider = get_provider()
+    if not provider:
+        print("ERROR: No API key found. Add ANTHROPIC_API_KEY or OPENAI_API_KEY to your .env file.")
+        print("       cp .env.example .env  — then fill in your key.")
+        sys.exit(1)
 
-if not LIVE_MODE:
-    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
-    print(json.dumps(MOCK_OUTPUT, indent=2))
-else:
-    sample = {
-        "account_name": ACCOUNT_NAME,
+    data = {
+        "account_name": os.getenv("ACCOUNT_NAME", "Acme Corp"),
         "milestone_achieved": os.getenv("MILESTONE_ACHIEVED", "Customer went live ahead of schedule, first full month complete"),
         "interaction_summary": os.getenv("INTERACTION_SUMMARY", "Champion said she would recommend us to peers on last QBR"),
         "sentiment_summary": os.getenv("SENTIMENT_SUMMARY", "NPS 9 submitted yesterday, recent tickets resolved same-day"),
     }
-    result = build_review_request(sample)
+
+    print(f"Earned Ask — running locally with {provider}")
+    print(f"Account: {data['account_name']}\n")
+
+    result = build_review_request(data)
     print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

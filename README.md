@@ -1,115 +1,87 @@
-# ExtensibleAgents — CS Workflow Templates
+# CS Agentic Workflow Templates
 
-Five plug-and-play agentic workflows for Customer Success teams. Test them locally with Claude Code, deploy to the cloud when you're ready.
+5 agentic CS workflows you can run today, built for the [ExtensibleAgents](https://extensibleagents.com) webinar.
+
+No developer. No infrastructure. Just Python.
 
 ---
 
 ## The 5 Workflows
 
 | Workflow | What it does |
-|----------|-------------|
-| **Invisible Handoff** | Briefs your CSM from the sales transcript before the first customer call |
-| **Trust Radar** | Analyses win-back calls to distinguish genuine trust loss from negotiation tactics |
-| **Expansion Signal Detector** | Scans transcripts and notes for customers ready to expand |
-| **Churn Risk Summarizer** | Generates a plain-English risk narrative before a QBR or renewal |
-| **Earned Ask** | Detects the right moment and drafts a personalised review request |
-
-Each workflow folder contains: `execution/main.py`, `.env.example`, and a `README.md` with setup steps, example inputs, and example outputs.
+|---|---|
+| **Churn Risk Summarizer** | Turns recent account activity into a plain-language risk narrative before a QBR or renewal call |
+| **Earned Ask** | Detects when a positive milestone has been hit, then drafts the review request email |
+| **Expansion Signal Detector** | Scans call notes and transcripts for signals that a customer is ready to expand |
+| **Invisible Handoff** | Turns a Closed Won deal into a structured CSM handoff brief |
+| **Trust Radar** | Analyses escalation call transcripts to tell you: genuine loss of trust, or negotiating? |
 
 ---
 
-## How it works
+## Three ways to run
 
-**Local first. Cloud later.**
+### 1. Instant demo (no setup required)
+```bash
+python3 test.py
+```
+Shows you what the workflow does with sample data. No API key needed. Always works.
 
-1. Install dependencies, fill in your credentials
-2. Run locally — test with real or sample data, see the output
-3. When you're happy — deploy to Modal and point your tools at the webhook
+### 2. Local real run (your own API key)
+```bash
+python3 local.py
+```
+Runs the actual workflow logic locally. No Modal account needed. Requires an API key.
 
-You don't need a Modal account to test. Everything runs locally with Python.
+### 3. Cloud deploy (production use)
+```bash
+modal deploy execution/main.py
+```
+Deploys as a cloud function with Modal. For always-on production use.
 
 ---
 
-## Prerequisites
+## Getting started
 
-### Python 3.8+
+**Step 1: Clone the repo**
 ```bash
-python3 --version
+git clone https://github.com/defianed/cs-webinar
+cd cs-webinar
 ```
 
-### pip
+**Step 2: Install dependencies**
 ```bash
-pip --version
-
-# If missing on Mac:
-brew install python
-
-# If missing on Ubuntu/Debian:
-sudo apt-get install python3-pip
+pip install -r requirements.txt
 ```
 
-### Python dependencies
+**Step 3: See the workflow in action**
 ```bash
-pip install anthropic openai slack-sdk requests
+cd trust-radar   # (or any other workflow)
+python3 test.py
 ```
 
-### An LLM API key
-Pick one:
-- **Anthropic Claude** — [console.anthropic.com](https://console.anthropic.com) (recommended)
-- **OpenAI GPT** — [platform.openai.com](https://platform.openai.com)
-
----
-
-## Quick Start
-
-We recommend starting with **Earned Ask** — it's the simplest, no CRM or transcript provider needed.
-
+**Step 4: Run with your own API key**
 ```bash
-cd earned-ask
 cp .env.example .env
-# Open .env and fill in your LLM API key + any other values
+# Edit .env — add ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+python3 local.py
 ```
 
-Run it:
-```bash
-export $(cat .env | xargs)
-python3 execution/main.py
-```
-
-You'll see the output printed to your terminal. If you've added a Slack bot token, the result lands in the CSM's Slack DM.
-
-See the `README.md` inside each workflow folder for the full setup guide, required env vars, example inputs, and example outputs.
-
----
-
-## Cloud Deployment (optional)
-
-When you want a workflow running automatically — triggered by your CRM, Gong, or Zapier — deploy to Modal:
-
+**Step 5: Deploy to the cloud (optional)**
 ```bash
 pip install modal
-modal token new   # Free account at modal.com
-
-modal secret create earned-ask-secrets \
-  LLM_PROVIDER=anthropic \
-  ANTHROPIC_API_KEY=sk-ant-... \
-  SLACK_BOT_TOKEN=xoxb-...
-
+modal setup
 modal deploy execution/main.py
 ```
 
-Modal gives you a webhook URL. Point your tools at it and the workflow runs automatically.
+---
+
+## Requirements
+
+- Python 3.9+
+- An [Anthropic](https://anthropic.com) or [OpenAI](https://openai.com) API key
+- (Optional) A Slack bot token for notifications
+- (Optional) Modal account for cloud deployment
 
 ---
 
-## Testing without real integrations
-
-Every workflow accepts raw text directly — no Gong, Salesforce, or Zendesk required to get started. Paste sample transcript text or notes in the env vars and run it. Wire up real integrations once the output quality is proven.
-
----
-
-## Need help?
-
-These workflows were built by [ExtensibleAgents](https://extensibleagents.com) — the agentic CS platform co-founded by Lincoln Murphy and Lewis Thompson.
-
-If you want help deploying these for your team, or want to see what a full agentic CS stack looks like in production, visit **[extensibleagents.com](https://extensibleagents.com)**.
+Built with [Claude](https://anthropic.com) by [ExtensibleAgents](https://extensibleagents.com)
