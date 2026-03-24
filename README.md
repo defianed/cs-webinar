@@ -54,7 +54,7 @@ Set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` and it calls the real LLM with the `
 
 ```bash
 cd earned-ask
-cp .env.example .env
+cp .env.example .env   # one .env for all 5 workflows
 # Edit .env — add API key, optionally Slack token
 python3 local.py
 ```

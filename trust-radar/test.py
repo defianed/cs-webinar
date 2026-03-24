@@ -6,7 +6,11 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    from pathlib import Path
+    # Load .env from repo root (one level up from workflow dir)
+    _root = Path(__file__).parent.parent
+    load_dotenv(_root / ".env")
+    load_dotenv()  # fallback: local .env
 except ImportError:
     pass
 
@@ -101,7 +105,7 @@ def call_llm(system: str, user: str) -> str:
         resp = client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", "gpt-4o"),
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-            max_tokens=1500,
+            max_tokens=4000,
             response_format={"type": "json_object"},
         )
         return resp.choices[0].message.content
@@ -109,7 +113,7 @@ def call_llm(system: str, user: str) -> str:
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     resp = client.messages.create(
         model=os.getenv("ANTHROPIC_MODEL", "claude-opus-4-6"),
-        max_tokens=1500,
+        max_tokens=4000,
         system=system,
         messages=[{"role": "user", "content": user}],
     )
