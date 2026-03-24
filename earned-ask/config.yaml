@@ -1,0 +1,7 @@
+# Non-secret configuration (secrets go in .env)
+account_name: "Acme Corp"
+csm_name: "Jordan Kim"
+provider:
+  llm: manual       # anthropic | openai | manual
+  crm: manual       # manual | salesforce | hubspot
+  transcript: manual  # manual | gong | fireflies

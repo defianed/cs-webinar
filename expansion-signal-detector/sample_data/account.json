@@ -1,0 +1,18 @@
+{
+  "account_name": "ScaleUp Ltd",
+  "arr": 58000,
+  "plan": "Professional (100 seats)",
+  "csm_name": "Riley Morgan",
+  "renewal_date": "2026-09-30",
+  "days_to_renewal": 190,
+  "champion": "Ben Torres, Head of Engineering",
+  "economic_buyer": "Chloe Park, CFO",
+  "contract_start": "2025-09-30",
+  "nps": 8,
+  "seats_active": 95,
+  "seats_licensed": 100,
+  "api_calls_this_month": 284000,
+  "api_calls_last_month": 202000,
+  "api_calls_growth_pct": 40.6,
+  "power_users": ["ben.torres@scaleup.io", "hana.wells@scaleup.io", "dev.patel@scaleup.io"]
+}

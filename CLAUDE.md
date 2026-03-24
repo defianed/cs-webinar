@@ -18,33 +18,109 @@ You are helping a Customer Success leader set up, test, and run these agentic CS
 
 ---
 
+## Three Run Modes
+
+### Mode 1 — Instant demo (no setup required)
+```bash
+python3 test.py
+```
+Shows you what the workflow does with **built-in sample data**. Zero config. No API key. Always works. Use this in demos or to understand what a workflow produces before wiring it up.
+
+### Mode 2 — Local manual mode (sample_data/ files)
+```bash
+python3 local.py
+```
+Loads `sample_data/account.json` and `sample_data/notes.json` from the workflow folder and renders the mock output. No API key required. Useful for onboarding, demos, and customising the sample data to match your own accounts.
+
+**To use manual mode:** edit `config.yaml` in the workflow folder and set:
+```yaml
+provider:
+  llm: manual
+```
+
+### Mode 3 — Local live LLM mode (your own API key)
+```bash
+cp .env.example .env
+# Edit .env — add ANTHROPIC_API_KEY or OPENAI_API_KEY
+# Edit config.yaml — set provider.llm: anthropic (or openai)
+python3 local.py
+```
+Runs the actual workflow logic using a real LLM. Costs ~$0.02–0.05 per run. Requires an API key.
+
+### Mode 4 — Cloud deploy (production use)
+```bash
+modal deploy execution/main.py
+```
+Deploys as a cloud function with Modal. For always-on production use — triggered by CRM webhooks, Gong, Zapier, etc.
+
+---
+
+## config.yaml — Non-Secret Configuration
+
+Each workflow has a `config.yaml` file. This is where you configure **which providers to use** — not secrets. Secrets always go in `.env`.
+
+```yaml
+# Non-secret configuration (secrets go in .env)
+account_name: "TechFlow Inc"
+csm_name: "Alex Chen"
+provider:
+  llm: manual       # anthropic | openai | manual
+  crm: manual       # manual | salesforce | hubspot
+  transcript: manual  # manual | gong | fireflies
+```
+
+**Provider options:**
+- `llm: manual` — use built-in mock output (no API key needed)
+- `llm: anthropic` — use Claude (requires `ANTHROPIC_API_KEY` in `.env`)
+- `llm: openai` — use GPT-4o (requires `OPENAI_API_KEY` in `.env`)
+
+If you set `llm: anthropic` but the API key is missing or invalid, `local.py` will automatically fall back to manual mode and tell you why — it will never crash.
+
+---
+
+## sample_data/ — Fixture Files
+
+Each workflow has a `sample_data/` folder with two JSON files:
+
+| File | Contents |
+|------|----------|
+| `account.json` | Account context: name, ARR, CSM, renewal date, champion, etc. |
+| `notes.json` | Recent interaction notes, transcript snippets, support summary |
+
+When running in **manual mode**, `local.py` loads these files and combines them as the input data. You can edit them to match a real account before a demo or call prep session.
+
+---
+
+## examples/ — Sample Output
+
+Each workflow has an `examples/sample_output.md` file that shows exactly what the workflow produces — Slack message format and the full analysis JSON. Read these to understand what to expect before running anything.
+
+---
+
 ## Repo Structure
 
 ```
 cs-webinar/
-├── README.md                          # Prerequisites and quick start
-├── CLAUDE.md                          # This file — Claude Code reads this automatically
-├── invisible-handoff/
-│   ├── execution/main.py              # The workflow logic
-│   ├── .env.example                   # All required credentials — copy to .env and fill in
-│   └── README.md                      # What it does, example inputs, example outputs
-├── trust-radar/
-├── expansion-signal-detector/
+├── README.md                          # 60-second quickstart
+├── CLAUDE.md                          # This file
+├── requirements.txt                   # pip install -r requirements.txt
 ├── churn-risk-summarizer/
-└── earned-ask/
+│   ├── config.yaml                    # Provider config (no secrets)
+│   ├── sample_data/
+│   │   ├── account.json               # Sample account context
+│   │   └── notes.json                 # Sample notes / activity
+│   ├── examples/
+│   │   └── sample_output.md           # What this workflow produces
+│   ├── local.py                       # Run locally (manual or live LLM)
+│   ├── test.py                        # Instant demo with built-in mock data
+│   ├── execution/main.py              # Modal cloud function
+│   ├── .env.example                   # Credential template
+│   └── README.md                      # Workflow-specific docs
+├── earned-ask/                        # Same structure
+├── expansion-signal-detector/         # Same structure
+├── invisible-handoff/                 # Same structure
+└── trust-radar/                       # Same structure
 ```
-
----
-
-## How the Setup Flow Works
-
-**Local first. Cloud later (optional).**
-
-1. Client installs dependencies and fills in credentials
-2. Client tests locally — runs the workflow, sees real output
-3. If they want it running 24/7 in the cloud → deploy to Modal
-
-Modal is only needed for cloud deployment. Everything can be tested and validated locally first.
 
 ---
 
@@ -54,72 +130,43 @@ Modal is only needed for cloud deployment. Everything can be tested and validate
 
 ```bash
 python3 --version   # Need 3.8+
-pip --version       # Need pip
-```
-
-If pip is missing:
-```bash
-# Mac
-brew install python
-
-# Ubuntu/Debian
-sudo apt-get install python3-pip
+pip --version
 ```
 
 ### Step 2 — Install dependencies
 
 ```bash
-pip install anthropic openai slack-sdk requests
+pip install -r requirements.txt
 ```
 
-### Step 3 — Pick a workflow to start with
-
-Recommend **Earned Ask** — it's the simplest. No CRM or transcript provider required. Just an LLM API key and optionally Slack.
-
-### Step 4 — Set up credentials
+### Step 3 — See what a workflow does (no setup)
 
 ```bash
 cd earned-ask
+python3 test.py
+```
+
+Recommend **Earned Ask** first — it's the simplest and the output is immediately legible.
+
+### Step 4 — Customise the sample data
+
+Edit `sample_data/account.json` and `sample_data/notes.json` to match a real account. Then:
+```bash
+python3 local.py   # Uses manual mode — no API key needed
+```
+
+### Step 5 — Run with a real API key
+
+```bash
 cp .env.example .env
+# Add ANTHROPIC_API_KEY to .env
+# Edit config.yaml: set provider.llm: anthropic
+python3 local.py
 ```
 
-Open `.env` and fill in the values. Help them identify which ones they actually need — not all are required. The minimum to test locally:
+Cost per run: ~$0.02–0.05 with Claude Sonnet. ~$0.03–0.06 with GPT-4o.
 
-```
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-ACCOUNT_NAME=Test Account
-MILESTONE_ACHIEVED=Customer went live ahead of schedule
-INTERACTION_SUMMARY=Champion said they would recommend us
-SENTIMENT_SUMMARY=NPS 9 submitted yesterday
-```
-
-### Step 5 — Run locally
-
-Each workflow has a local entrypoint that runs the core logic without any cloud infrastructure:
-
-```bash
-# Load env vars and run
-cd earned-ask
-export $(cat .env | xargs)
-python3 execution/main.py
-```
-
-This runs the workflow with the values from `.env` and prints the output. No Modal account needed.
-
-### Step 6 — Verify the output
-
-The workflow prints a JSON result. Walk the client through reading it — what each field means, whether the output looks right for their use case.
-
-### Step 7 — Connect Slack (optional but recommended)
-
-Add `SLACK_BOT_TOKEN` and `CSM_SLACK_USER_ID` to `.env` and re-run. The workflow will send the output as a Slack DM.
-
-To get the Slack user ID: right-click any user in Slack → View profile → Copy member ID (starts with `U`).
-
-### Step 8 — Cloud deployment (when they're ready)
-
-Only when the local test is working and they want it running automatically:
+### Step 6 — Cloud deployment (when ready)
 
 ```bash
 pip install modal
@@ -127,13 +174,10 @@ modal token new    # Opens browser, log in to modal.com (free account)
 
 modal secret create earned-ask-secrets \
   LLM_PROVIDER=anthropic \
-  ANTHROPIC_API_KEY=sk-ant-... \
-  SLACK_BOT_TOKEN=xoxb-...
+  ANTHROPIC_API_KEY=sk-ant-...
 
 modal deploy execution/main.py
 ```
-
-Modal gives them a webhook URL. They point their CRM/Gong/Zapier at it and the workflow runs automatically.
 
 ---
 
@@ -141,50 +185,38 @@ Modal gives them a webhook URL. They point their CRM/Gong/Zapier at it and the w
 
 **`ModuleNotFoundError: No module named 'anthropic'`**
 ```bash
-pip install anthropic openai slack-sdk requests
+pip install -r requirements.txt
 ```
 
 **`AuthenticationError` from Anthropic or OpenAI**
-The API key in `.env` is wrong or has a typo. Double-check it — no spaces, no quotes around the value.
+The API key in `.env` is wrong or revoked. Set `provider.llm: manual` in `config.yaml` to run without it.
+
+**`ModuleNotFoundError: No module named 'yaml'`**
+```bash
+pip install pyyaml
+```
 
 **`KeyError` or `IndexError` when parsing output**
-The LLM returned something unexpected. Switch to a stronger model:
+The LLM returned unexpected output. Switch to a stronger model in `.env`:
 ```
 ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 ```
 
 **Slack DM not arriving**
 - `SLACK_BOT_TOKEN` must start with `xoxb-`
-- `CSM_SLACK_USER_ID` must be a Slack member ID (format `U012AB3CD`), not `@username`
-- The bot must be installed to the workspace at [api.slack.com/apps](https://api.slack.com/apps)
-
-**Salesforce auth error**
-`SALESFORCE_PASSWORD` must include the security token appended to the end of the password (e.g. `mypasswordsecuritytoken`).
-
-**Trust Radar: live mode**
-Live mode polls for in-progress transcripts. Start with `"mode": "post_call"` in your webhook payload — it's simpler and works with all transcript providers including Fireflies and Zoom.
+- `CSM_SLACK_USER_ID` must be a Slack member ID (`U012AB3CD`), not `@username`
 
 ---
 
 ## Provider Cheat Sheet
 
-| Category | Options | Env var |
-|----------|---------|---------|
-| LLM | Anthropic, OpenAI | `LLM_PROVIDER=anthropic` or `openai` |
-| CRM | Salesforce, HubSpot | `CRM_PROVIDER=salesforce` or `hubspot` |
-| Transcripts | Gong, Fireflies, Zoom | `CALL_TRANSCRIPT_PROVIDER=gong` etc |
-| Support | Zendesk, Intercom | `SUPPORT_PROVIDER=zendesk` or `intercom` |
-| Analytics | Mixpanel, Amplitude | `ANALYTICS_PROVIDER=mixpanel` or `amplitude` |
+| Category | Options | Config key |
+|----------|---------|------------|
+| LLM | anthropic, openai, manual | `provider.llm` in config.yaml |
+| CRM | salesforce, hubspot, manual | `provider.crm` in config.yaml |
+| Transcripts | gong, fireflies, manual | `provider.transcript` in config.yaml |
 
-**You don't need all of them.** Every workflow accepts raw text directly in the payload — you can test without connecting any external provider. Wire up real integrations once the workflow is proven locally.
-
----
-
-## Minimum Viable Test (no integrations at all)
-
-Every workflow accepts raw text in the payload fields (`transcript_text`, `recent_activity`, `interaction_summary`, etc.). You can paste sample text directly and see real output immediately — no Gong, no Salesforce, no Zendesk needed.
-
-Start there. Connect real data sources once you've validated the output quality.
+**You don't need all of them.** Every workflow works with `manual` for all providers — paste sample text into `sample_data/notes.json` and you're running in seconds. Wire up real integrations once the workflow is proven locally.
 
 ---
 

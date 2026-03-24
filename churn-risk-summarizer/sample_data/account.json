@@ -1,0 +1,17 @@
+{
+  "account_name": "TechFlow Inc",
+  "arr": 42000,
+  "plan": "Growth (100 seats)",
+  "csm_name": "Alex Chen",
+  "renewal_date": "2026-07-15",
+  "days_to_renewal": 113,
+  "health_score": 54,
+  "health_trend": "declining",
+  "champion": "Dana Reyes, Head of RevOps",
+  "economic_buyer": "Marcus Li, VP Sales",
+  "contract_start": "2025-07-15",
+  "nps": 6,
+  "nps_prev": 8,
+  "seats_active": 62,
+  "seats_licensed": 100
+}

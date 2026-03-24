@@ -1,0 +1,17 @@
+{
+  "account_name": "Acme Corp",
+  "arr": 48000,
+  "deal_value": "$48,000 ACV",
+  "plan": "Professional",
+  "csm_name": "Sam Rivera",
+  "deal_closed_date": "2026-03-20",
+  "sales_rep": "Jake Hoffman",
+  "champion": "Sarah Okonkwo, VP Engineering",
+  "economic_buyer": "Mike Chen, CTO",
+  "q3_launch_deadline": "2026-09-01",
+  "team_size": 200,
+  "industry": "Fintech",
+  "prior_vendor": "Legacy internal toolchain (3 separate tools)",
+  "competitors_evaluated": ["DataBridge", "NovaSuite"],
+  "payment_terms": "Milestone-based: 50% on kickoff, 50% on API GA"
+}

@@ -6,81 +6,136 @@ No developer. No infrastructure. Just Python.
 
 ---
 
-## The 5 Workflows
+## 60-Second Quickstart
 
-| Workflow | What it does |
-|---|---|
-| **Churn Risk Summarizer** | Turns recent account activity into a plain-language risk narrative before a QBR or renewal call |
-| **Earned Ask** | Detects when a positive milestone has been hit, then drafts the review request email |
-| **Expansion Signal Detector** | Scans call notes and transcripts for signals that a customer is ready to expand |
-| **Invisible Handoff** | Turns a Closed Won deal into a structured CSM handoff brief |
-| **Trust Radar** | Analyses escalation call transcripts to tell you: genuine loss of trust, or negotiating? |
-
----
-
-## Three ways to run
-
-### 1. Instant demo (no setup required)
 ```bash
-python3 test.py
-```
-Shows you what the workflow does with sample data. No API key needed. Always works.
-
-### 2. Local real run (your own API key)
-```bash
-python3 local.py
-```
-Runs the actual workflow logic locally. No Modal account needed. Requires an API key.
-
-### 3. Cloud deploy (production use)
-```bash
-modal deploy execution/main.py
-```
-Deploys as a cloud function with Modal. For always-on production use.
-
----
-
-## Getting started
-
-**Step 1: Clone the repo**
-```bash
+# 1. Clone
 git clone https://github.com/defianed/cs-webinar
 cd cs-webinar
-```
 
-**Step 2: Install dependencies**
-```bash
+# 2. Install dependencies
 pip install -r requirements.txt
-```
 
-**Step 3: See the workflow in action**
-```bash
-cd trust-radar   # (or any other workflow)
+# 3. See a workflow in action — no API key needed
+cd trust-radar
 python3 test.py
-```
 
-**Step 4: Run with your own API key**
-```bash
+# 4. Run with sample data in manual mode — no API key needed
+python3 local.py
+
+# 5. (Optional) Run with your real API key
 cp .env.example .env
-# Edit .env — add ANTHROPIC_API_KEY (or OPENAI_API_KEY)
+# Edit .env: add ANTHROPIC_API_KEY=sk-ant-...
+# Edit config.yaml: set provider.llm: anthropic
 python3 local.py
 ```
 
-**Step 5: Deploy to the cloud (optional)**
+That's it. You'll see real output in under 60 seconds.
+
+---
+
+## The 5 Workflows
+
+| Workflow | What it produces | Sample output |
+|---|---|---|
+| **Churn Risk Summarizer** | Plain-language risk narrative for a QBR or renewal call — not a health score, a story | [sample_output.md](churn-risk-summarizer/examples/sample_output.md) |
+| **Earned Ask** | Detects genuine milestone moments, then drafts the G2/review request email ready to send | [sample_output.md](earned-ask/examples/sample_output.md) |
+| **Expansion Signal Detector** | Scans call notes for buying signals, rates expansion readiness, and suggests next steps | [sample_output.md](expansion-signal-detector/examples/sample_output.md) |
+| **Invisible Handoff** | Turns a Closed Won deal into a structured CSM brief: stakeholders, commitments, watchouts | [sample_output.md](invisible-handoff/examples/sample_output.md) |
+| **Trust Radar** | Classifies escalation call transcripts: genuine loss of trust, negotiating, or mixed? | [sample_output.md](trust-radar/examples/sample_output.md) |
+
+---
+
+## Three Ways to Run
+
+### 1. Instant demo — no setup required
 ```bash
-pip install modal
-modal setup
-modal deploy execution/main.py
+python3 test.py
 ```
+Built-in sample data. No API key. Always works. Use this to show a colleague what a workflow does in 10 seconds.
+
+### 2. Manual mode — customise sample data, no API key needed
+```bash
+python3 local.py
+```
+Loads `sample_data/account.json` and `sample_data/notes.json`. Edit those files to match a real account and run again. No API key required. Default mode when `config.yaml` has `provider.llm: manual`.
+
+### 3. Live LLM mode — real AI output, ~$0.02–0.05 per run
+```bash
+cp .env.example .env
+# Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env
+# Edit config.yaml: set provider.llm: anthropic (or openai)
+python3 local.py
+```
+Runs with a real LLM. Cost estimate: ~$0.02–0.05 per workflow run with Claude Sonnet, ~$0.03–0.06 with GPT-4o.
 
 ---
 
 ## Requirements
 
 - Python 3.9+
-- An [Anthropic](https://anthropic.com) or [OpenAI](https://openai.com) API key
-- (Optional) A Slack bot token for notifications
-- (Optional) Modal account for cloud deployment
+- No API key needed for demo and manual modes
+- Anthropic or OpenAI API key for live LLM mode (~$0.02–0.05/run)
+- (Optional) Modal account for cloud deployment — free tier available
+
+---
+
+## Customise the Sample Data
+
+Each workflow has a `sample_data/` folder:
+- `account.json` — account context (name, ARR, CSM, renewal date, etc.)
+- `notes.json` — recent notes, transcript snippets, support summary
+
+Edit these files to match a real account before your next QBR prep or handoff call, then run `python3 local.py`.
+
+---
+
+## How Providers Work
+
+Each workflow has a `config.yaml` with a `provider` section:
+
+```yaml
+provider:
+  llm: manual       # anthropic | openai | manual
+  crm: manual       # manual | salesforce | hubspot
+  transcript: manual  # manual | gong | fireflies
+```
+
+- `manual` — uses built-in sample data (no external connection needed)
+- `anthropic` / `openai` — calls the real API (key required in `.env`)
+
+If `local.py` can't find a valid API key for the configured provider, it falls back to manual mode automatically and tells you why — it never crashes.
+
+---
+
+## Cloud Deployment (Optional)
+
+When you're ready to run these automatically in production:
+
+```bash
+pip install modal
+modal token new   # free account at modal.com
+
+cd earned-ask
+modal secret create earned-ask-secrets \
+  ANTHROPIC_API_KEY=sk-ant-...
+
+modal deploy execution/main.py
+```
+
+Modal gives you a webhook URL. Point your CRM, Gong, or Zapier at it and the workflow runs automatically when triggered.
+
+---
+
+## Cost Estimates
+
+| Model | Tokens per run | Approx cost |
+|-------|---------------|-------------|
+| Claude Sonnet (Anthropic) | ~1,500–2,000 | ~$0.02–0.03 |
+| Claude Opus (Anthropic) | ~1,500–2,000 | ~$0.04–0.06 |
+| GPT-4o (OpenAI) | ~1,500–2,000 | ~$0.02–0.05 |
+
+All well under $0.10 per run. For a team running 20 workflows/day, budget ~$10–20/month.
 
 ---
 
