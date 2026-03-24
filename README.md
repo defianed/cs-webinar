@@ -1,5 +1,26 @@
 # CS Workflow Templates
 
+## Get Started in 5 Minutes
+
+```bash
+git clone https://github.com/defianed/cs-webinar.git
+cd cs-webinar
+pip install -r requirements.txt
+python3 setup.py
+```
+
+The setup wizard will walk you through:
+1. Your LLM API key (Anthropic or OpenAI)
+2. A live test so you see it working immediately
+3. Your company and CSM details
+4. Your tool stack (CRM, transcripts, support — or manual if you don't have them)
+5. Where to send results (Slack, Notion, or both)
+
+Takes about 5 minutes. After that, run any workflow with `python3 <workflow>/local.py`.
+
+---
+
+
 5 agentic CS workflows you can run today. Built by [ExtensibleAgents.com](https://extensibleagents.com).
 
 ---
