@@ -3,14 +3,14 @@
 Earned Ask — local runner (no Modal required)
 Run: python3 local.py
 
-Run modes:
-  Manual (default): loads sample_data/ and shows mock output — no API key needed
-  LLM mode:         set provider.llm: anthropic (or openai) in config.yaml + add key to .env
+Modes:
+  No API key  — loads sample_data/, prints mock output
+  With API key — loads sample_data/, calls real LLM
 
-Config: edit config.yaml to change provider settings (no secrets there).
-Secrets: copy .env.example → .env and add your API key.
+Config: edit config.yaml (no secrets there)
+Secrets: copy .env.example to .env and add your API key
 """
-import os, json, sys
+import os, json
 from pathlib import Path
 
 try:
@@ -27,13 +27,12 @@ except ImportError:
 
 WORKFLOW_DIR = Path(__file__).parent
 
-# ── MOCK OUTPUT (mirrors test.py) ─────────────────────────────────────────────
 MOCK_OUTPUT = {
     "should_ask": True,
-    "reason": "Acme Corp hit their go-live milestone ahead of schedule, their champion mentioned they'd recommend the product to peers, and they submitted a 9 NPS yesterday. This is a genuine earned ask.",
+    "reason": "Acme Corp went live 5 days ahead of schedule, hit 96% seat adoption in month one, and Priya submitted a 9 NPS and told the CSM unprompted she'd recommend the product. This is a genuine earned ask — not a hope ask.",
     "subject_line": "Quick favour — would mean a lot",
-    "email_body": "Hi [Champion Name],\n\nJust wanted to say — watching your team hit go-live ahead of schedule was genuinely one of those moments that reminds me why I love this work.\n\nIf you've got 2 minutes, would you mind leaving us a review on G2? Even a sentence about what's worked would make a big difference for us.\n\n[G2 Review Link]\n\nNo pressure at all — and thanks again for being such a great partner through the onboarding.\n\n[CSM Name]",
-    "csm_notes": "This is an earned ask. Send it. Don't overthink it. They gave you a 9 NPS and their champion is already promoting you internally."
+    "email_body": "Hi Priya,\n\nWatching your team go live ahead of schedule last month was one of those moments that reminds me why I love this work. 24 of 25 seats active in month one is genuinely rare.\n\nIf you've got 2 minutes, would you mind leaving us a short review on G2? Even a sentence or two about what's worked would make a real difference for us.\n\n[G2 Review Link]\n\nNo pressure at all — and thank you for being such a great partner through onboarding.\n\nSarah",
+    "csm_notes": "This is an earned ask. Send it. Priya already told you she'd recommend the product — you're just making it easy for her to do that publicly. She also mentioned two referrals in today's call — follow up on those separately."
 }
 
 
@@ -45,22 +44,20 @@ def load_config() -> dict:
     return {}
 
 
-def get_llm_provider(config: dict) -> str:
-    provider_config = config.get("provider", {})
-    return provider_config.get("llm", "manual")
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
 
 
-def has_valid_key(provider: str) -> bool:
-    if provider == "anthropic":
-        key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
-        return bool(key)
-    if provider == "openai":
-        key = (os.getenv("OPENAI_API_KEY") or "").strip()
-        return bool(key) and key.startswith("sk-")
-    return False
+def get_provider() -> str:
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
 
 
-def call_llm(prompt: str, provider: str) -> str:
+def call_llm(prompt: str) -> str:
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -80,19 +77,18 @@ def call_llm(prompt: str, provider: str) -> str:
     return resp.content[0].text
 
 
-def build_review_request_live(data: dict, provider: str) -> dict:
+def build_review_request(data: dict) -> dict:
     prompt = f"""Return JSON only.
-Given the milestone context below, decide if a review request is earned and draft a customer-facing email.
+Given the account context below, decide if a review request is earned and draft a customer-facing email.
 
 Context:
 {json.dumps(data, indent=2)}
 
 Return keys: should_ask (bool), reason, subject_line, email_body, csm_notes."""
     try:
-        raw = call_llm(prompt, provider)
+        raw = call_llm(prompt)
     except Exception as e:
-        print(f"⚠️  LLM call failed: {e}")
-        print("   Falling back to manual mode with sample data.\n")
+        print(f"Warning: LLM call failed: {e}")
         return None
     for marker in ["```json", "```"]:
         if marker in raw:
@@ -105,28 +101,22 @@ Return keys: should_ask (bool), reason, subject_line, email_body, csm_notes."""
 
 
 def load_sample_data() -> dict:
-    account_path = WORKFLOW_DIR / "sample_data" / "account.json"
-    notes_path = WORKFLOW_DIR / "sample_data" / "notes.json"
     data = {}
-    if account_path.exists():
-        data.update(json.loads(account_path.read_text()))
-    if notes_path.exists():
-        data.update(json.loads(notes_path.read_text()))
-    if not data:
-        data = {
-            "account_name": "Acme Corp",
-            "milestone_achieved": "Customer went live ahead of schedule",
-            "interaction_summary": "Champion said she would recommend us to peers",
-            "sentiment_summary": "NPS 9 submitted yesterday",
-        }
+    for filename in ["account.json", "transcript.json", "notes.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            try:
+                data[key] = json.loads(path.read_text())
+            except Exception:
+                pass
     return data
 
 
 def main():
     config = load_config()
-    llm_provider = get_llm_provider(config)
-    account_name = config.get("account_name") or os.getenv("ACCOUNT_NAME", "Acme Corp")
-    csm_name = config.get("csm_name") or os.getenv("CSM_NAME", "Jordan Kim")
+    account_name = config.get("account_name", "Acme Corp")
+    csm_name = config.get("csm_name", "Sarah Johnson")
 
     print("=" * 60)
     print("  Earned Ask")
@@ -134,30 +124,20 @@ def main():
     print(f"  Account : {account_name}")
     print(f"  CSM     : {csm_name}")
 
-    use_manual = llm_provider == "manual" or not has_valid_key(llm_provider)
+    data = load_sample_data()
+    if "account" in data:
+        data["account"]["name"] = account_name
 
-    if use_manual:
-        if llm_provider != "manual":
-            print(f"\n⚠️  No valid {llm_provider.upper()} API key found.")
-            print("   Running in manual mode using sample_data/.\n")
-            print("   To use live LLM: add your key to .env and set provider.llm in config.yaml\n")
-        else:
-            print(f"\n📂 Mode: manual (loading sample_data/)\n")
-
-        data = load_sample_data()
-        result = MOCK_OUTPUT
-    else:
-        print(f"\n🤖 Mode: live LLM ({llm_provider})\n")
-        data = {
-            "account_name": account_name,
-            "milestone_achieved": os.getenv("MILESTONE_ACHIEVED", "Customer went live ahead of schedule, first full month complete"),
-            "interaction_summary": os.getenv("INTERACTION_SUMMARY", "Champion said she would recommend us to peers on last QBR"),
-            "sentiment_summary": os.getenv("SENTIMENT_SUMMARY", "NPS 9 submitted yesterday, recent tickets resolved same-day"),
-        }
-        result = build_review_request_live(data, llm_provider)
+    if has_api_key():
+        print(f"\n[LIVE] Calling {get_provider()} with sample data...\n")
+        result = build_review_request(data)
         if result is None:
-            data = load_sample_data()
+            print("LLM call failed — falling back to mock output.\n")
             result = MOCK_OUTPUT
+    else:
+        print("\n[MOCK] No API key found — showing sample output.")
+        print("       Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env to use live LLM.\n")
+        result = MOCK_OUTPUT
 
     print(json.dumps(result, indent=2))
 

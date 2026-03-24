@@ -1,80 +1,87 @@
 # Trust Radar — Sample Output
 
+**Account:** Acme Corp | **CSM:** Sarah Johnson | **ARR:** $72K | **Urgency:** 8/10
+
+---
+
 ## Slack Message (sent to CSM + escalation lead)
 
 ```
 🔍 Trust Radar Analysis — Acme Corp
-Classification: NEGOTIATING (79% confidence)
+Classification: NEGOTIATING (82% confidence)
 
 This is NOT a genuine loss of trust — it's leverage.
 
-Here's why: Someone who has genuinely lost trust doesn't give you an out.
-They go quiet and start the procurement process. Sarah gave you a specific,
-actionable bar to clear at 11:04: "Get the API live this week and give me
-written commitments on the next two milestones."
+Here's the tell: at 03:18, Sarah Mitchell said "If you can get the API live by
+March 28 and give me written commitments on the next two milestones, I'll hold
+off the evaluation."
 
-That's not someone exiting — that's someone telling you exactly what she needs
-to stay. The competitor mention (Salesforce, HubSpot) is leverage, not a
-resignation letter.
+That's not someone exiting. That's someone telling you exactly what she needs
+to stay. The competitor mentions (Salesforce, HubSpot) are leverage, not a
+resignation letter. She even added: "I'll hold off calling DataBridge until I
+see it." She's giving you a path.
 
 Urgency Score: 8/10
 
-You have a path. Use it.
+The path is narrow and time-bound. Use it.
 
 Recommended actions:
-1. Confirm API GA date with engineering TODAY (not tomorrow)
-2. Draft written commitment letter — specific dates, no ranges
-3. Follow up within 24 hours — bring your PM
-4. Propose PM-led weekly milestone syncs until resolved
+1. Deliver CTO written commitment letter to Sarah Mitchell by 5pm TODAY
+2. Confirm API GA date (March 28) with engineering before sending anything
+3. Set up weekly PM sync — invite Sarah to the first one this week
+4. Do NOT offer financial concessions — she hasn't asked for them
+5. Follow up within 24 hours — do not let this go cold
 
-Key evidence snippets below ↓
+CSM: Sarah Johnson
 ```
+
+---
 
 ## Analysis JSON
 
 ```json
 {
   "classification": "NEGOTIATING",
-  "confidence": 0.79,
-  "reasoning": "The customer's frustration is real — three missed commitments caused genuine operational pain (40 hours of manual work). But the language pattern is classic negotiation, not relationship exit. The conditional offer at 11:04 is the tell: 'If you can get the API live this week... I'll hold off the evaluation.' Someone who has genuinely lost trust doesn't give you a specific, actionable bar to clear. They leave quietly and start procurement. She's giving you a very precise path to keep the account.",
+  "confidence": 0.82,
+  "reasoning": "Sarah Mitchell's frustration is real — three missed API commitments caused 40 hours of manual work. But the language is classic negotiation, not relationship exit. The conditional offer at 03:18 is the tell: 'If you can get the API live by March 28 and give me written commitments on the next two milestones, I'll hold off the evaluation.' Someone who has genuinely lost trust doesn't give you a specific, actionable bar to clear. They leave quietly. She's giving you a very precise path.",
   "evidence_snippets": [
     {
-      "timestamp": "08:45",
-      "speaker": "Sarah",
+      "timestamp": "00:12",
+      "speaker": "Sarah Mitchell",
       "text": "You've missed three commitments in a row. The API was supposed to be live in January. It's March.",
       "signal_type": "genuine_frustration",
-      "confidence": 0.92
+      "confidence": 0.93
     },
     {
-      "timestamp": "10:02",
-      "speaker": "Sarah",
-      "text": "We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.",
+      "timestamp": "01:35",
+      "speaker": "Sarah Mitchell",
+      "text": "We are actively evaluating Salesforce and HubSpot right now. Just so you're aware.",
       "signal_type": "negotiation_leverage",
-      "confidence": 0.85
+      "confidence": 0.87
     },
     {
-      "timestamp": "11:04",
-      "speaker": "Sarah",
-      "text": "If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.",
+      "timestamp": "03:18",
+      "speaker": "Sarah Mitchell",
+      "text": "If you can get the API live by March 28 and give me written commitments on the next two milestones, I'll hold off the evaluation.",
       "signal_type": "conditional_opening",
       "confidence": 0.91
     },
     {
-      "timestamp": "11:52",
-      "speaker": "Sarah",
-      "text": "Okay. But I mean it — this is the last chance.",
-      "signal_type": "urgency_signal",
-      "confidence": 0.75
+      "timestamp": "04:08",
+      "speaker": "Sarah Mitchell",
+      "text": "Okay. I'll hold off calling DataBridge until I see it.",
+      "signal_type": "door_left_open",
+      "confidence": 0.88
     }
   ],
-  "response_strategy": "Do not get defensive. Do not hedge. Confirm the API date with engineering today and come back within 24 hours with: (1) confirmed API GA date in writing, (2) written commitment on the next two milestones with specific dates — no ranges, (3) proposed PM-led weekly milestone syncs. She gave you a specific bar — clear it.",
+  "response_strategy": "Do not get defensive. Do not hedge. Confirm API date with engineering today and deliver CTO written commitment by 5pm. Come back within 24 hours with: (1) written API GA date — March 28, no ranges, (2) written commitments on next two milestones with specific dates, (3) PM added to weekly sync.",
   "urgency_score": 8,
   "recommended_actions": [
-    "Confirm API GA date with engineering before end of day — do not guess",
-    "Draft written commitment letter with specific dates (not ranges)",
-    "Follow up with Sarah within 24 hours — bring PM to the call",
-    "Propose PM-led weekly milestone syncs until API is stable",
-    "Do not offer financial concessions yet — she hasn't asked for them"
+    "Deliver CTO written commitment letter to Sarah Mitchell by 5pm today",
+    "Confirm API GA date (March 28) with engineering before sending anything",
+    "Set up weekly PM sync — invite Sarah to the first one this week",
+    "Do not offer financial concessions — she has not asked for them",
+    "Follow up within 24 hours — do not let this go cold"
   ]
 }
 ```

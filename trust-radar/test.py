@@ -1,8 +1,8 @@
-# Local test — no Modal required. Run: python3 test.py
-# To run with live AI: python3 test.py --live
-import os, json, sys
-
-LIVE_MODE = "--live" in sys.argv
+# test.py — zero setup required. If API key found, calls real LLM with sample_data/.
+# Otherwise prints labelled mock output and exits 0.
+# Run: python3 test.py
+import os, json
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -10,50 +10,50 @@ try:
 except ImportError:
     pass
 
-
-ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "Acme Corp")
+WORKFLOW_DIR = Path(__file__).parent
 
 MOCK_OUTPUT = {
     "classification": "NEGOTIATING",
-    "confidence": 0.79,
-    "reasoning": "The customer's frustration is real — three missed commitments is legitimately damaging — but the language pattern is classic negotiation, not relationship exit. The conditional offer at 11:04 ('If you can get the API live this week... I'll hold off the evaluation') is the tell. Someone who has genuinely lost trust doesn't give you an out. They leave. She's giving you a very specific, actionable bar to clear.",
+    "confidence": 0.82,
+    "reasoning": "Sarah Mitchell's frustration is real — three missed API commitments caused 40 hours of manual work. But the language is classic negotiation, not relationship exit. The conditional offer at 03:18 is the tell: 'If you can get the API live by March 28 and give me written commitments on the next two milestones, I'll hold off the evaluation.' Someone who has genuinely lost trust doesn't give you a specific, actionable bar to clear. They leave quietly. She's giving you a very precise path to keep the account.",
     "evidence_snippets": [
         {
-            "timestamp": "08:45",
-            "speaker": "Sarah",
+            "timestamp": "00:12",
+            "speaker": "Sarah Mitchell",
             "text": "You've missed three commitments in a row. The API was supposed to be live in January. It's March.",
             "signal_type": "genuine_frustration",
-            "confidence": 0.92
+            "confidence": 0.93
         },
         {
-            "timestamp": "10:02",
-            "speaker": "Sarah",
-            "text": "We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.",
+            "timestamp": "01:35",
+            "speaker": "Sarah Mitchell",
+            "text": "We are actively evaluating Salesforce and HubSpot right now. Just so you're aware.",
             "signal_type": "negotiation_leverage",
-            "confidence": 0.85
+            "confidence": 0.87
         },
         {
-            "timestamp": "11:04",
-            "speaker": "Sarah",
-            "text": "If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.",
+            "timestamp": "03:18",
+            "speaker": "Sarah Mitchell",
+            "text": "If you can get the API live by March 28 and give me written commitments on the next two milestones, I'll hold off the evaluation.",
             "signal_type": "conditional_opening",
-            "confidence": 0.88
+            "confidence": 0.91
         },
         {
-            "timestamp": "11:52",
-            "speaker": "Sarah",
-            "text": "Okay. But I mean it — this is the last chance.",
-            "signal_type": "urgency_signal",
-            "confidence": 0.75
+            "timestamp": "04:08",
+            "speaker": "Sarah Mitchell",
+            "text": "Okay. I'll hold off calling DataBridge until I see it.",
+            "signal_type": "door_left_open",
+            "confidence": 0.88
         }
     ],
-    "response_strategy": "Do not get defensive. Do not hedge. Go away from this call and confirm the API date with engineering today. Come back within 24 hours with: (1) confirmed API GA date in writing, (2) written commitment on the next two milestones with specific dates, (3) a weekly sync with PM present. She's given you a specific bar — clear it.",
+    "response_strategy": "Do not get defensive. Do not hedge. Confirm the API date with engineering today and deliver the CTO's written commitment by 5pm. Come back within 24 hours with: (1) written API GA date — March 28, no wriggle room, (2) written commitments on next two milestones with specific dates, (3) PM added to a weekly sync. She gave you a specific bar — clear it.",
     "urgency_score": 8,
     "recommended_actions": [
-        "Confirm API GA date with engineering before end of day",
-        "Draft written commitment letter — specific dates, no ranges",
-        "Schedule follow-up within 24 hours — bring PM",
-        "Propose PM-led weekly milestone syncs until resolved"
+        "Deliver CTO written commitment letter to Sarah Mitchell by 5pm today",
+        "Confirm API GA date (March 28) with engineering before sending anything",
+        "Set up weekly PM sync — invite Sarah to the first one this week",
+        "Do not offer financial concessions — she has not asked for them",
+        "Follow up within 24 hours — do not let this go cold"
     ]
 }
 
@@ -66,9 +66,19 @@ Classify trust status as one of:
 - UNCLEAR: insufficient signal to classify
 
 Return JSON with keys:
-classification, confidence (0.0-1.0), reasoning, 
+classification, confidence (0.0-1.0), reasoning,
 evidence_snippets (list of {timestamp, speaker, text, signal_type, confidence}),
 response_strategy, urgency_score (1-10), recommended_actions (list)."""
+
+
+def load_sample_data() -> dict:
+    data = {}
+    for filename in ["account.json", "transcript.json", "tickets.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            data[key] = json.loads(path.read_text())
+    return data
 
 
 def has_api_key() -> bool:
@@ -76,16 +86,11 @@ def has_api_key() -> bool:
 
 
 def get_provider() -> str:
-    """Auto-detect provider from which key is actually set."""
-    explicit = os.getenv("LLM_PROVIDER", "").strip()
-    if explicit:
-        return explicit
     if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
         return "anthropic"
     if (os.getenv("OPENAI_API_KEY") or "").strip():
         return "openai"
     return "anthropic"
-
 
 
 def call_llm(system: str, user: str) -> str:
@@ -121,32 +126,24 @@ def analyse_trust(data: dict) -> dict:
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {
-            "classification": "UNCLEAR",
-            "confidence": 0.0,
-            "reasoning": f"Parse error. Raw: {raw[:300]}",
-            "evidence_snippets": [],
-            "response_strategy": "Manual review required.",
-            "urgency_score": 5,
-            "recommended_actions": ["Review transcript manually"],
-        }
+        return {"classification": "UNCLEAR", "confidence": 0.0, "reasoning": f"Parse error: {raw[:300]}", "evidence_snippets": [], "response_strategy": "Manual review required.", "urgency_score": 5, "recommended_actions": []}
 
 
-print(f"Testing Trust Radar with account: {ACCOUNT_NAME}\n")
+def main():
+    data = load_sample_data()
+    account_name = data.get("account", {}).get("name", "Acme Corp")
+    print(f"Trust Radar — {account_name}\n")
 
-if not LIVE_MODE:
-    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
-    print(json.dumps(MOCK_OUTPUT, indent=2))
-else:
-    sample = {
-        "customer_name": ACCOUNT_NAME,
-        "transcript": os.getenv("TRANSCRIPT_TEXT",
-            "[08:45] Sarah: You've missed three commitments in a row. The API was supposed to be live in January. It's March.\n"
-            "[09:15] Sarah: We built our entire Q1 onboarding workflow around that API. We had to do everything manually.\n"
-            "[10:02] Sarah: We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.\n"
-            "[10:31] Sarah: I don't know. Maybe. But I need to see action, not promises.\n"
-            "[11:04] Sarah: If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.\n"
-            "[11:52] Sarah: Okay. But I mean it — this is the last chance."),
-    }
-    result = analyse_trust(sample)
+    if has_api_key():
+        print(f"[LIVE] API key found — calling {get_provider()} with sample data...\n")
+        result = analyse_trust(data)
+    else:
+        print("[MOCK] No API key — showing sample output.")
+        print("       Set ANTHROPIC_API_KEY or OPENAI_API_KEY to call live LLM.\n")
+        result = MOCK_OUTPUT
+
     print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

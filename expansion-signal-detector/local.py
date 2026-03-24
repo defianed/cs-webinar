@@ -3,14 +3,14 @@
 Expansion Signal Detector — local runner (no Modal required)
 Run: python3 local.py
 
-Run modes:
-  Manual (default): loads sample_data/ and shows mock output — no API key needed
-  LLM mode:         set provider.llm: anthropic (or openai) in config.yaml + add key to .env
+Modes:
+  No API key  — loads sample_data/, prints mock output
+  With API key — loads sample_data/, calls real LLM
 
-Config: edit config.yaml to change provider settings (no secrets there).
-Secrets: copy .env.example → .env and add your API key.
+Config: edit config.yaml (no secrets there)
+Secrets: copy .env.example to .env and add your API key
 """
-import os, json, sys
+import os, json
 from pathlib import Path
 
 try:
@@ -27,27 +27,30 @@ except ImportError:
 
 WORKFLOW_DIR = Path(__file__).parent
 
-# ── MOCK OUTPUT (mirrors test.py) ─────────────────────────────────────────────
 MOCK_OUTPUT = {
     "expansion_ready": True,
-    "confidence": 0.81,
+    "confidence": 0.83,
     "buying_signals": [
-        "Mentioned rolling platform out to sales team next quarter",
-        "At 95 of 100 seat capacity — naturally approaching plan limits",
-        "Champion said 'this has transformed how we work'",
-        "Proactively asked about pricing for additional seats"
+        "Ben mentioned rolling platform out to sales team in Q3 (unprompted)",
+        "At 95/100 seat capacity — organically approaching plan limits",
+        "Champion said 'this has transformed how our RevOps team works'",
+        "Proactively asked about pricing for adding seats",
+        "API calls up 40% MoM — deep product integration signals stickiness"
     ],
     "blockers": [
-        "Budget cycle restarts in Q3 — may need to wait for approval",
-        "Current integration issue should be resolved first to avoid risk"
+        "Budget cycle resets Q3 — CFO Chloe Park is the approver",
+        "CFO is ROI-focused — needs data before sign-off",
+        "Open CRM integration ticket should be resolved first"
     ],
-    "recommended_timing": "Initiate expansion conversation in 3-4 weeks once integration is resolved and Q3 budget opens",
+    "recommended_timing": "Prepare ROI one-pager in 2 weeks, schedule expansion call for late April once Q3 budget opens",
     "next_steps": [
-        "Get the integration ticket closed this week",
-        "Prepare a custom expansion quote based on their stated headcount plans",
-        "Schedule a dedicated expansion call — don't do this as an add-on to a check-in"
+        "Escalate open CRM integration ticket — resolve before expansion conversation",
+        "Build ROI one-pager with Hana's time-savings data for CFO audience",
+        "Prepare custom Business 150 quote with per-seat comparison",
+        "Schedule dedicated expansion call — do not attach to regular check-in",
+        "Ask Ben to pre-sell internally to Chloe before formal call"
     ],
-    "rationale": "ScaleUp is organically growing into expansion: they're near plan limits, the champion is vocal about ROI, and they're already thinking about broader rollout. The only thing holding this back is the integration issue and budget timing — both solvable."
+    "rationale": "Acme Corp is organically growing into expansion: near plan limits, API usage accelerating, VP Sales proactively raised expansion pricing. Friction is budget timing and CFO ROI story — both solvable in 3-4 weeks."
 }
 
 
@@ -59,22 +62,20 @@ def load_config() -> dict:
     return {}
 
 
-def get_llm_provider(config: dict) -> str:
-    provider_config = config.get("provider", {})
-    return provider_config.get("llm", "manual")
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
 
 
-def has_valid_key(provider: str) -> bool:
-    if provider == "anthropic":
-        key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
-        return bool(key)
-    if provider == "openai":
-        key = (os.getenv("OPENAI_API_KEY") or "").strip()
-        return bool(key) and key.startswith("sk-")
-    return False
+def get_provider() -> str:
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
 
 
-def call_llm(prompt: str, provider: str) -> str:
+def call_llm(prompt: str) -> str:
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -94,7 +95,7 @@ def call_llm(prompt: str, provider: str) -> str:
     return resp.content[0].text
 
 
-def detect_expansion_signals_live(data: dict, provider: str) -> dict:
+def detect_expansion_signals(data: dict) -> dict:
     prompt = f"""Return JSON only.
 Analyse this account context for expansion readiness signals.
 
@@ -103,10 +104,9 @@ Context:
 
 Return keys: expansion_ready (bool), confidence (0.0-1.0), buying_signals (list), blockers (list), recommended_timing, next_steps (list), rationale."""
     try:
-        raw = call_llm(prompt, provider)
+        raw = call_llm(prompt)
     except Exception as e:
-        print(f"⚠️  LLM call failed: {e}")
-        print("   Falling back to manual mode with sample data.\n")
+        print(f"Warning: LLM call failed: {e}")
         return None
     for marker in ["```json", "```"]:
         if marker in raw:
@@ -119,28 +119,22 @@ Return keys: expansion_ready (bool), confidence (0.0-1.0), buying_signals (list)
 
 
 def load_sample_data() -> dict:
-    account_path = WORKFLOW_DIR / "sample_data" / "account.json"
-    notes_path = WORKFLOW_DIR / "sample_data" / "notes.json"
     data = {}
-    if account_path.exists():
-        data.update(json.loads(account_path.read_text()))
-    if notes_path.exists():
-        data.update(json.loads(notes_path.read_text()))
-    if not data:
-        data = {
-            "account_name": "ScaleUp Ltd",
-            "transcript_snippets": "We're rolling this out to the sales team next quarter... asked about pricing for 20 more seats",
-            "post_call_notes": "Champion mentioned they're at 95 seats and approaching their limit.",
-            "usage_summary": "95 of 100 seats active. API calls up 40% month-over-month.",
-        }
+    for filename in ["account.json", "transcript.json", "notes.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            try:
+                data[key] = json.loads(path.read_text())
+            except Exception:
+                pass
     return data
 
 
 def main():
     config = load_config()
-    llm_provider = get_llm_provider(config)
-    account_name = config.get("account_name") or os.getenv("ACCOUNT_NAME", "ScaleUp Ltd")
-    csm_name = config.get("csm_name") or os.getenv("CSM_NAME", "Riley Morgan")
+    account_name = config.get("account_name", "Acme Corp")
+    csm_name = config.get("csm_name", "Sarah Johnson")
 
     print("=" * 60)
     print("  Expansion Signal Detector")
@@ -148,30 +142,20 @@ def main():
     print(f"  Account : {account_name}")
     print(f"  CSM     : {csm_name}")
 
-    use_manual = llm_provider == "manual" or not has_valid_key(llm_provider)
+    data = load_sample_data()
+    if "account" in data:
+        data["account"]["name"] = account_name
 
-    if use_manual:
-        if llm_provider != "manual":
-            print(f"\n⚠️  No valid {llm_provider.upper()} API key found.")
-            print("   Running in manual mode using sample_data/.\n")
-            print("   To use live LLM: add your key to .env and set provider.llm in config.yaml\n")
-        else:
-            print(f"\n📂 Mode: manual (loading sample_data/)\n")
-
-        data = load_sample_data()
-        result = MOCK_OUTPUT
-    else:
-        print(f"\n🤖 Mode: live LLM ({llm_provider})\n")
-        data = {
-            "account_name": account_name,
-            "transcript_snippets": os.getenv("TRANSCRIPT_SNIPPETS", "We're rolling this out to the sales team next quarter... this has transformed our workflow... asked about pricing for 20 more seats"),
-            "post_call_notes": os.getenv("POST_CALL_NOTES", "Champion mentioned they're at 95 seats and approaching their limit. Discussed expansion pricing briefly. Budget opens in Q3."),
-            "usage_summary": os.getenv("USAGE_SUMMARY", "95 of 100 seats active. API calls up 40% month-over-month. 3 power users in engineering team."),
-        }
-        result = detect_expansion_signals_live(data, llm_provider)
+    if has_api_key():
+        print(f"\n[LIVE] Calling {get_provider()} with sample data...\n")
+        result = detect_expansion_signals(data)
         if result is None:
-            data = load_sample_data()
+            print("LLM call failed — falling back to mock output.\n")
             result = MOCK_OUTPUT
+    else:
+        print("\n[MOCK] No API key found — showing sample output.")
+        print("       Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env to use live LLM.\n")
+        result = MOCK_OUTPUT
 
     print(json.dumps(result, indent=2))
 

@@ -3,14 +3,14 @@
 Trust Radar — local runner (no Modal required)
 Run: python3 local.py
 
-Run modes:
-  Manual (default): loads sample_data/ and shows mock output — no API key needed
-  LLM mode:         set provider.llm: anthropic (or openai) in config.yaml + add key to .env
+Modes:
+  No API key  — loads sample_data/, prints mock output
+  With API key — loads sample_data/, calls real LLM
 
-Config: edit config.yaml to change provider settings (no secrets there).
-Secrets: copy .env.example → .env and add your API key.
+Config: edit config.yaml (no secrets there)
+Secrets: copy .env.example to .env and add your API key
 """
-import os, json, sys
+import os, json
 from pathlib import Path
 
 try:
@@ -40,48 +40,24 @@ classification, confidence (0.0-1.0), reasoning,
 evidence_snippets (list of {timestamp, speaker, text, signal_type, confidence}),
 response_strategy, urgency_score (1-10), recommended_actions (list)."""
 
-# ── MOCK OUTPUT (mirrors test.py) ─────────────────────────────────────────────
 MOCK_OUTPUT = {
     "classification": "NEGOTIATING",
-    "confidence": 0.79,
-    "reasoning": "The customer's frustration is real — three missed commitments is legitimately damaging — but the language pattern is classic negotiation, not relationship exit. The conditional offer at 11:04 ('If you can get the API live this week... I'll hold off the evaluation') is the tell. Someone who has genuinely lost trust doesn't give you an out. They leave. She's giving you a very specific, actionable bar to clear.",
+    "confidence": 0.82,
+    "reasoning": "Sarah Mitchell's frustration is real — three missed API commitments caused 40 hours of manual work. But the language is classic negotiation, not relationship exit. The conditional offer at 03:18 is the tell: 'If you can get the API live by March 28 and give me written commitments on the next two milestones, I'll hold off the evaluation.' Someone who has genuinely lost trust doesn't give you a specific, actionable bar to clear. They leave quietly. She's giving you a very precise path to keep the account.",
     "evidence_snippets": [
-        {
-            "timestamp": "08:45",
-            "speaker": "Sarah",
-            "text": "You've missed three commitments in a row. The API was supposed to be live in January. It's March.",
-            "signal_type": "genuine_frustration",
-            "confidence": 0.92
-        },
-        {
-            "timestamp": "10:02",
-            "speaker": "Sarah",
-            "text": "We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.",
-            "signal_type": "negotiation_leverage",
-            "confidence": 0.85
-        },
-        {
-            "timestamp": "11:04",
-            "speaker": "Sarah",
-            "text": "If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.",
-            "signal_type": "conditional_opening",
-            "confidence": 0.88
-        },
-        {
-            "timestamp": "11:52",
-            "speaker": "Sarah",
-            "text": "Okay. But I mean it — this is the last chance.",
-            "signal_type": "urgency_signal",
-            "confidence": 0.75
-        }
+        {"timestamp": "00:12", "speaker": "Sarah Mitchell", "text": "You've missed three commitments in a row. The API was supposed to be live in January. It's March.", "signal_type": "genuine_frustration", "confidence": 0.93},
+        {"timestamp": "01:35", "speaker": "Sarah Mitchell", "text": "We are actively evaluating Salesforce and HubSpot right now. Just so you're aware.", "signal_type": "negotiation_leverage", "confidence": 0.87},
+        {"timestamp": "03:18", "speaker": "Sarah Mitchell", "text": "If you can get the API live by March 28 and give me written commitments on the next two milestones, I'll hold off the evaluation.", "signal_type": "conditional_opening", "confidence": 0.91},
+        {"timestamp": "04:08", "speaker": "Sarah Mitchell", "text": "Okay. I'll hold off calling DataBridge until I see it.", "signal_type": "door_left_open", "confidence": 0.88}
     ],
-    "response_strategy": "Do not get defensive. Do not hedge. Go away from this call and confirm the API date with engineering today. Come back within 24 hours with: (1) confirmed API GA date in writing, (2) written commitment on the next two milestones with specific dates, (3) a weekly sync with PM present. She's given you a specific bar — clear it.",
+    "response_strategy": "Do not get defensive. Do not hedge. Confirm the API date with engineering today and deliver the CTO's written commitment by 5pm. Come back within 24 hours with: (1) written API GA date — March 28, (2) written commitments on next two milestones with specific dates, (3) PM added to weekly sync.",
     "urgency_score": 8,
     "recommended_actions": [
-        "Confirm API GA date with engineering before end of day",
-        "Draft written commitment letter — specific dates, no ranges",
-        "Schedule follow-up within 24 hours — bring PM",
-        "Propose PM-led weekly milestone syncs until resolved"
+        "Deliver CTO written commitment letter to Sarah Mitchell by 5pm today",
+        "Confirm API GA date (March 28) with engineering before sending anything",
+        "Set up weekly PM sync — invite Sarah to the first one this week",
+        "Do not offer financial concessions — she has not asked for them",
+        "Follow up within 24 hours — do not let this go cold"
     ]
 }
 
@@ -94,22 +70,20 @@ def load_config() -> dict:
     return {}
 
 
-def get_llm_provider(config: dict) -> str:
-    provider_config = config.get("provider", {})
-    return provider_config.get("llm", "manual")
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
 
 
-def has_valid_key(provider: str) -> bool:
-    if provider == "anthropic":
-        key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
-        return bool(key)
-    if provider == "openai":
-        key = (os.getenv("OPENAI_API_KEY") or "").strip()
-        return bool(key) and key.startswith("sk-")
-    return False
+def get_provider() -> str:
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
 
 
-def call_llm(system: str, user: str, provider: str) -> str:
+def call_llm(system: str, user: str) -> str:
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -131,13 +105,12 @@ def call_llm(system: str, user: str, provider: str) -> str:
     return resp.content[0].text
 
 
-def analyse_trust_live(data: dict, provider: str) -> dict:
+def analyse_trust(data: dict) -> dict:
     user_msg = f"Analyse this call and return your classification as JSON.\n\n{json.dumps(data, indent=2)}"
     try:
-        raw = call_llm(SYSTEM_PROMPT, user_msg, provider)
+        raw = call_llm(SYSTEM_PROMPT, user_msg)
     except Exception as e:
-        print(f"⚠️  LLM call failed: {e}")
-        print("   Falling back to manual mode with sample data.\n")
+        print(f"Warning: LLM call failed: {e}")
         return None
     for marker in ["```json", "```"]:
         if marker in raw:
@@ -146,38 +119,26 @@ def analyse_trust_live(data: dict, provider: str) -> dict:
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {
-            "classification": "UNCLEAR",
-            "confidence": 0.0,
-            "reasoning": f"Parse error. Raw: {raw[:300]}",
-            "evidence_snippets": [],
-            "response_strategy": "Manual review required.",
-            "urgency_score": 5,
-            "recommended_actions": ["Review transcript manually"],
-        }
+        return {"classification": "UNCLEAR", "confidence": 0.0, "reasoning": f"Parse error: {raw[:300]}", "evidence_snippets": [], "response_strategy": "Manual review required.", "urgency_score": 5, "recommended_actions": []}
 
 
 def load_sample_data() -> dict:
-    account_path = WORKFLOW_DIR / "sample_data" / "account.json"
-    notes_path = WORKFLOW_DIR / "sample_data" / "notes.json"
     data = {}
-    if account_path.exists():
-        data.update(json.loads(account_path.read_text()))
-    if notes_path.exists():
-        data.update(json.loads(notes_path.read_text()))
-    if not data:
-        data = {
-            "customer_name": "Acme Corp",
-            "transcript": "[08:45] Sarah: You've missed three commitments in a row.\n[11:04] Sarah: If you can get the API live this week, I'll hold off the evaluation.",
-        }
+    for filename in ["account.json", "transcript.json", "tickets.json", "notes.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            try:
+                data[key] = json.loads(path.read_text())
+            except Exception:
+                pass
     return data
 
 
 def main():
     config = load_config()
-    llm_provider = get_llm_provider(config)
-    account_name = config.get("account_name") or os.getenv("ACCOUNT_NAME", "Acme Corp")
-    csm_name = config.get("csm_name") or os.getenv("CSM_NAME", "Taylor Brooks")
+    account_name = config.get("account_name", "Acme Corp")
+    csm_name = config.get("csm_name", "Sarah Johnson")
 
     print("=" * 60)
     print("  Trust Radar")
@@ -185,34 +146,20 @@ def main():
     print(f"  Account : {account_name}")
     print(f"  CSM     : {csm_name}")
 
-    use_manual = llm_provider == "manual" or not has_valid_key(llm_provider)
+    data = load_sample_data()
+    if "account" in data:
+        data["account"]["name"] = account_name
 
-    if use_manual:
-        if llm_provider != "manual":
-            print(f"\n⚠️  No valid {llm_provider.upper()} API key found.")
-            print("   Running in manual mode using sample_data/.\n")
-            print("   To use live LLM: add your key to .env and set provider.llm in config.yaml\n")
-        else:
-            print(f"\n📂 Mode: manual (loading sample_data/)\n")
-
-        data = load_sample_data()
-        result = MOCK_OUTPUT
-    else:
-        print(f"\n🤖 Mode: live LLM ({llm_provider})\n")
-        data = {
-            "customer_name": account_name,
-            "transcript": os.getenv("TRANSCRIPT_TEXT",
-                "[08:45] Sarah: You've missed three commitments in a row. The API was supposed to be live in January. It's March.\n"
-                "[09:15] Sarah: We built our entire Q1 onboarding workflow around that API. We had to do everything manually.\n"
-                "[10:02] Sarah: We're actively evaluating Salesforce and HubSpot right now. Just so you're aware.\n"
-                "[10:31] Sarah: I don't know. Maybe. But I need to see action, not promises.\n"
-                "[11:04] Sarah: If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.\n"
-                "[11:52] Sarah: Okay. But I mean it — this is the last chance."),
-        }
-        result = analyse_trust_live(data, llm_provider)
+    if has_api_key():
+        print(f"\n[LIVE] Calling {get_provider()} with sample data...\n")
+        result = analyse_trust(data)
         if result is None:
-            data = load_sample_data()
+            print("LLM call failed — falling back to mock output.\n")
             result = MOCK_OUTPUT
+    else:
+        print("\n[MOCK] No API key found — showing sample output.")
+        print("       Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env to use live LLM.\n")
+        result = MOCK_OUTPUT
 
     print(json.dumps(result, indent=2))
 

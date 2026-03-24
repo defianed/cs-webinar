@@ -3,14 +3,15 @@
 Invisible Handoff — local runner (no Modal required)
 Run: python3 local.py
 
-Run modes:
-  Manual (default): loads sample_data/ and shows mock output — no API key needed
-  LLM mode:         set provider.llm: anthropic (or openai) in config.yaml + add key to .env
+Modes:
+  No API key  — loads sample_data/, prints mock output
+  With API key — loads sample_data/, calls real LLM
 
-Config: edit config.yaml to change provider settings (no secrets there).
-Secrets: copy .env.example → .env and add your API key.
+Config: edit config.yaml (no secrets there)
+Secrets: copy .env.example to .env and add your API key
+         Add NOTION_API_KEY and NOTION_PARENT_PAGE_ID to .env to auto-create Notion pages
 """
-import os, json, sys
+import os, json
 from pathlib import Path
 
 try:
@@ -27,45 +28,51 @@ except ImportError:
 
 WORKFLOW_DIR = Path(__file__).parent
 
-# ── MOCK OUTPUT (mirrors test.py) ─────────────────────────────────────────────
 MOCK_OUTPUT = {
-    "account_overview": "Acme Corp is a 200-person fintech company that closed a $48K ACV deal. Sarah (VP Engineering) is the champion; Mike (CTO) holds budget. Deal closed faster than average — they were actively evaluating two other vendors.",
+    "account_overview": "Acme Corp is a 200-person fintech that closed a $48K ACV deal on 2026-03-20. Sarah Okonkwo (VP Engineering) is the champion. Mike Chen (CTO) is the economic buyer and skeptical — been burned before. James Liu (Senior DevOps) will own the integration but was not in any demos.",
     "customer_goals": [
+        "Replace fragmented 3-tool toolchain with single platform by Q3",
         "Reduce time-to-integrate from 3 weeks to under 5 days",
-        "Replace their current fragmented toolchain (3 tools → 1 platform)",
-        "Hit their Q3 product launch with the new API layer in place"
+        "Hit Q3 product launch deadline (August 1) with API layer in place"
     ],
     "pain_points": [
-        "Previous vendor had good uptime but terrible support SLAs — left them stranded",
-        "Engineering team is stretched thin — any migration overhead is costly",
-        "Their CTO is skeptical of vendor commitments after being burned before"
+        "Previous vendors had good uptime but terrible support SLAs",
+        "Engineering team is stretched — migration overhead is costly",
+        "CTO skeptical of vendor commitments after being burned before"
     ],
     "commitments_made": [
-        "API will be GA by May 15 — confirmed with product",
-        "Dedicated onboarding engineer (Marcus) assigned for 30 days",
-        "Custom migration guide for their stack (Node.js + Postgres)"
+        "API GA by May 15 — confirmed with product team",
+        "Marcus (senior onboarding engineer, ex-Stripe) assigned for 30 days",
+        "Custom migration guide for Node.js + Postgres stack",
+        "SOC 2 Type II report and pen test results sent with contract",
+        "Milestone payments: 50% kickoff, 50% at API GA",
+        "30-day contract extension if API slips past May 15"
     ],
     "objections_handled": [
-        "Security: SOC 2 Type II + pen test report shared and reviewed",
-        "Pricing: Agreed to milestone-based payment schedule",
-        "Migration effort: Committed to co-building migration guide"
+        "Security: SOC 2 Type II certified + pen test provided",
+        "Migration risk: Marcus has Node.js migration experience at Stripe",
+        "Reliability: milestone payments tied to delivery not time",
+        "Competitors: differentiated vs DataBridge and NovaSuite"
     ],
     "key_stakeholders": [
-        {"name": "Sarah", "title": "VP Engineering", "role": "Champion — drove evaluation, day-to-day contact"},
-        {"name": "Mike", "title": "CTO", "role": "Economic buyer — skeptical, needs to see action not promises"},
-        {"name": "James", "title": "Senior DevOps", "role": "Will own the integration — address his operational concerns early"}
+        {"name": "Sarah Okonkwo", "title": "VP Engineering", "role": "Champion — drove evaluation, day-to-day contact, highly bought-in"},
+        {"name": "Mike Chen", "title": "CTO", "role": "Economic buyer — skeptical, wants written record of all commitments"},
+        {"name": "James Liu", "title": "Senior DevOps", "role": "Will own integration — NOT in demos, get him into kickoff ASAP"}
     ],
-    "urgency_timeline": "Q3 launch deadline is hard. API GA date is May 15. First CSM call should happen within 48 hours of deal close.",
+    "urgency_timeline": "Q3 launch is August 1 (hard). API GA is May 15. First CSM call within 24 hours of deal close (March 20). Kickoff with James before April.",
     "watchouts": [
-        "Mike's skepticism is real — he's been burned before. Do not overpromise in early calls.",
-        "API GA date is tight. Confirm with product before first call and do not hedge.",
-        "James wasn't in the demo. He'll have his own concerns. Get him into the kickoff."
+        "Mike's skepticism is real — do not hedge or over-promise",
+        "API GA (May 15) is tight — reconfirm with product before first call",
+        "James was not in demos — he will have concerns, get him on kickoff ASAP",
+        "Mike asked for written record of all commitments — send deal summary today"
     ],
     "suggested_first_call_agenda": [
-        "1. Introduce Marcus (onboarding engineer) and confirm availability",
-        "2. Confirm API GA date and show it in writing",
-        "3. Walk through migration guide outline — get James involved",
-        "4. Set weekly check-in cadence through Q3 launch"
+        "Introduce yourself, confirm you've read Jake's deal summary",
+        "Introduce Marcus — confirm his 30-day exclusive availability",
+        "Confirm API GA date (May 15) on the call, ask Mike to confirm he has it in writing",
+        "Get James added to kickoff — ask Sarah to facilitate",
+        "Walk through migration guide outline with James",
+        "Set weekly sync cadence through Q3 launch"
     ]
 }
 
@@ -78,22 +85,20 @@ def load_config() -> dict:
     return {}
 
 
-def get_llm_provider(config: dict) -> str:
-    provider_config = config.get("provider", {})
-    return provider_config.get("llm", "manual")
+def has_api_key() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
 
 
-def has_valid_key(provider: str) -> bool:
-    if provider == "anthropic":
-        key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
-        return bool(key)
-    if provider == "openai":
-        key = (os.getenv("OPENAI_API_KEY") or "").strip()
-        return bool(key) and key.startswith("sk-")
-    return False
+def get_provider() -> str:
+    if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return "anthropic"
+    if (os.getenv("OPENAI_API_KEY") or "").strip():
+        return "openai"
+    return "anthropic"
 
 
-def call_llm(prompt: str, provider: str) -> str:
+def call_llm(prompt: str) -> str:
+    provider = get_provider()
     if provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -113,7 +118,7 @@ def call_llm(prompt: str, provider: str) -> str:
     return resp.content[0].text
 
 
-def build_handoff_brief_live(data: dict, provider: str) -> dict:
+def build_brief(data: dict) -> dict:
     prompt = f"""Return JSON only.
 Create a CSM handoff brief from the sales context below.
 
@@ -122,10 +127,9 @@ Context:
 
 Return keys: account_overview, customer_goals (list), pain_points (list), commitments_made (list), objections_handled (list), key_stakeholders (list of objects with name/title/role), urgency_timeline, watchouts (list), suggested_first_call_agenda (list)."""
     try:
-        raw = call_llm(prompt, provider)
+        raw = call_llm(prompt)
     except Exception as e:
-        print(f"⚠️  LLM call failed: {e}")
-        print("   Falling back to manual mode with sample data.\n")
+        print(f"Warning: LLM call failed: {e}")
         return None
     for marker in ["```json", "```"]:
         if marker in raw:
@@ -134,32 +138,26 @@ Return keys: account_overview, customer_goals (list), pain_points (list), commit
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {"account_overview": raw, "parse_error": True}
+        return {"account_overview": "Parse error", "raw": raw[:500]}
 
 
 def load_sample_data() -> dict:
-    account_path = WORKFLOW_DIR / "sample_data" / "account.json"
-    notes_path = WORKFLOW_DIR / "sample_data" / "notes.json"
     data = {}
-    if account_path.exists():
-        data.update(json.loads(account_path.read_text()))
-    if notes_path.exists():
-        data.update(json.loads(notes_path.read_text()))
-    if not data:
-        data = {
-            "account_name": "Acme Corp",
-            "deal_value": "$48,000 ACV",
-            "transcript_summary": "Closed Won. Final call confirmed API GA, dedicated onboarding engineer, and milestone-based payments.",
-            "sales_rep_notes": "Champion is Sarah VP Eng. CTO Mike is skeptical. Q3 launch is hard deadline.",
-        }
+    for filename in ["account.json", "transcript.json", "tickets.json", "notes.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            try:
+                data[key] = json.loads(path.read_text())
+            except Exception:
+                pass
     return data
 
 
 def main():
     config = load_config()
-    llm_provider = get_llm_provider(config)
-    account_name = config.get("account_name") or os.getenv("ACCOUNT_NAME", "Acme Corp")
-    csm_name = config.get("csm_name") or os.getenv("CSM_NAME", "Sam Rivera")
+    account_name = config.get("account_name", "Acme Corp")
+    csm_name = config.get("csm_name", "Sarah Johnson")
 
     print("=" * 60)
     print("  Invisible Handoff")
@@ -167,30 +165,20 @@ def main():
     print(f"  Account : {account_name}")
     print(f"  CSM     : {csm_name}")
 
-    use_manual = llm_provider == "manual" or not has_valid_key(llm_provider)
+    data = load_sample_data()
+    if "account" in data:
+        data["account"]["name"] = account_name
 
-    if use_manual:
-        if llm_provider != "manual":
-            print(f"\n⚠️  No valid {llm_provider.upper()} API key found.")
-            print("   Running in manual mode using sample_data/.\n")
-            print("   To use live LLM: add your key to .env and set provider.llm in config.yaml\n")
-        else:
-            print(f"\n📂 Mode: manual (loading sample_data/)\n")
-
-        data = load_sample_data()
-        result = MOCK_OUTPUT
-    else:
-        print(f"\n🤖 Mode: live LLM ({llm_provider})\n")
-        data = {
-            "account_name": account_name,
-            "deal_value": os.getenv("DEAL_VALUE", "$48,000 ACV"),
-            "transcript_summary": os.getenv("TRANSCRIPT_SUMMARY", "Closed Won. Final call confirmed API GA, dedicated onboarding engineer, and milestone-based payments."),
-            "sales_rep_notes": os.getenv("SALES_REP_NOTES", "Champion is Sarah VP Eng. CTO Mike is skeptical. Q3 launch is hard deadline. Watch James in DevOps — wasn't in demo."),
-        }
-        result = build_handoff_brief_live(data, llm_provider)
+    if has_api_key():
+        print(f"\n[LIVE] Calling {get_provider()} with sample data...\n")
+        result = build_brief(data)
         if result is None:
-            data = load_sample_data()
+            print("LLM call failed — falling back to mock output.\n")
             result = MOCK_OUTPUT
+    else:
+        print("\n[MOCK] No API key found — showing sample output.")
+        print("       Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env to use live LLM.\n")
+        result = MOCK_OUTPUT
 
     print(json.dumps(result, indent=2))
 

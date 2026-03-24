@@ -1,8 +1,8 @@
-# Local test — no Modal required. Run: python3 test.py
-# To run with live AI: python3 test.py --live
-import os, json, sys
-
-LIVE_MODE = "--live" in sys.argv
+# test.py — zero setup required. If API key found, calls real LLM with sample_data/.
+# Otherwise prints labelled mock output and exits 0.
+# Run: python3 test.py
+import os, json
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -10,28 +10,41 @@ try:
 except ImportError:
     pass
 
-
-ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "TechFlow Inc")
+WORKFLOW_DIR = Path(__file__).parent
 
 MOCK_OUTPUT = {
-    "summary": "TechFlow Inc is showing early churn indicators with declining usage and disengagement from check-ins.",
-    "risk_story": "TechFlow started strong but has gone quiet over the past 30 days. Two users who were previously active have stopped logging in entirely. The open support ticket at 12 days is adding friction at exactly the wrong time — if it's not resolved this week, it becomes the reason they leave.",
+    "summary": "Acme Corp is showing early-to-mid churn indicators: login drop, ghost users, a stalled support ticket, and two missed check-ins.",
+    "risk_story": "Acme Corp started strong but has gone quiet. Two users — Tom and Alicia — haven't logged in since February. The Salesforce sync ticket has been open 14 days with no resolution date, and their COO scored renewal confidence at 6/10 in today's QBR. The open ticket is the most urgent issue: at this stage, an unresolved support problem becomes the reason they leave.",
     "primary_risks": [
-        "12-day open support ticket creating active frustration",
+        "14-day open Salesforce sync ticket — COO is tracking it personally",
         "Login frequency down 40% — 2 ghost users since February",
-        "Missed last 2 monthly check-ins"
+        "Missed last 2 monthly check-ins — two-month communication gap",
+        "NPS dropped from 8 to 6 in latest survey"
     ],
     "stabilizers": [
-        "Core product still in use by majority of team",
-        "Renewal not imminent — time to course-correct"
+        "Core workflow still in use by 61 of 100 seats",
+        "Renewal is 189 days away — time to course-correct",
+        "COO said 'we're not looking around' — no confirmed competitor evaluation",
+        "Both Marcus and Dana engaged in today's QBR and gave specific conditions"
     ],
     "next_call_focus": [
-        "Lead with the open support ticket — acknowledge the delay, give a timeline",
-        "Ask about the 2 inactive users — is there a team change?",
-        "Reframe check-ins as time-saving, not reporting"
+        "Lead with the Salesforce ticket — give a written resolution date before end of day",
+        "Schedule separate 30-min call with Tom and Alicia — listening only, no sales",
+        "Propose monthly check-ins with fixed agenda starting April",
+        "Ask directly what would move their renewal confidence from 6 to 8"
     ],
     "urgency": "high"
 }
+
+
+def load_sample_data() -> dict:
+    data = {}
+    for filename in ["account.json", "transcript.json", "tickets.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            data[key] = json.loads(path.read_text())
+    return data
 
 
 def has_api_key() -> bool:
@@ -39,16 +52,11 @@ def has_api_key() -> bool:
 
 
 def get_provider() -> str:
-    """Auto-detect provider from which key is actually set."""
-    explicit = os.getenv("LLM_PROVIDER", "").strip()
-    if explicit:
-        return explicit
     if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
         return "anthropic"
     if (os.getenv("OPENAI_API_KEY") or "").strip():
         return "openai"
     return "anthropic"
-
 
 
 def call_llm(prompt: str) -> str:
@@ -75,7 +83,6 @@ def call_llm(prompt: str) -> str:
 def build_risk_story(data: dict) -> dict:
     prompt = f"""Return JSON only.
 Create a plain-language churn risk story from the account context below.
-Do not output a numeric health score only — explain the situation as a narrative.
 
 Context:
 {json.dumps(data, indent=2)}
@@ -89,20 +96,24 @@ Return keys: summary, risk_story, primary_risks (list), stabilizers (list), next
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {"summary": raw, "risk_story": raw, "primary_risks": [], "stabilizers": [], "next_call_focus": [], "urgency": "unknown"}
+        return {"summary": "Parse error", "risk_story": raw[:300], "primary_risks": [], "stabilizers": [], "next_call_focus": [], "urgency": "unknown"}
 
 
-print(f"Testing Churn Risk Summarizer with account: {ACCOUNT_NAME}\n")
+def main():
+    data = load_sample_data()
+    account_name = data.get("account", {}).get("name", "Acme Corp")
+    print(f"Churn Risk Summarizer — {account_name}\n")
 
-if not LIVE_MODE:
-    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
-    print(json.dumps(MOCK_OUTPUT, indent=2))
-else:
-    sample = {
-        "account_name": ACCOUNT_NAME,
-        "recent_activity": os.getenv("RECENT_ACTIVITY", "Login frequency dropped 40% over last 30 days. 2 users haven't logged in since February."),
-        "support_summary": os.getenv("SUPPORT_SUMMARY", "3 tickets in past 30 days: 2 resolved quickly, 1 open for 12 days (integration issue). Frustrated tone in latest reply."),
-        "engagement_summary": os.getenv("ENGAGEMENT_SUMMARY", "Skipped last 2 monthly check-ins. NPS dropped from 8 to 6 in last survey."),
-    }
-    result = build_risk_story(sample)
+    if has_api_key():
+        print(f"[LIVE] API key found — calling {get_provider()} with sample data...\n")
+        result = build_risk_story(data)
+    else:
+        print("[MOCK] No API key — showing sample output.")
+        print("       Set ANTHROPIC_API_KEY or OPENAI_API_KEY to call live LLM.\n")
+        result = MOCK_OUTPUT
+
     print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

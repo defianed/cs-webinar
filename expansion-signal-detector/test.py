@@ -1,8 +1,8 @@
-# Local test — no Modal required. Run: python3 test.py
-# To run with live AI: python3 test.py --live
-import os, json, sys
-
-LIVE_MODE = "--live" in sys.argv
+# test.py — zero setup required. If API key found, calls real LLM with sample_data/.
+# Otherwise prints labelled mock output and exits 0.
+# Run: python3 test.py
+import os, json
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -10,30 +10,43 @@ try:
 except ImportError:
     pass
 
-
-ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "ScaleUp Ltd")
+WORKFLOW_DIR = Path(__file__).parent
 
 MOCK_OUTPUT = {
     "expansion_ready": True,
-    "confidence": 0.81,
+    "confidence": 0.83,
     "buying_signals": [
-        "Mentioned rolling platform out to sales team next quarter",
-        "At 95 of 100 seat capacity — naturally approaching plan limits",
-        "Champion said 'this has transformed how we work'",
-        "Proactively asked about pricing for additional seats"
+        "Ben mentioned rolling platform out to sales team in Q3 (unprompted)",
+        "At 95/100 seat capacity — organically approaching plan limits",
+        "Champion said 'this has transformed how our RevOps team works'",
+        "Proactively asked about pricing for adding seats",
+        "API calls up 40% MoM — deep product integration signals stickiness"
     ],
     "blockers": [
-        "Budget cycle restarts in Q3 — may need to wait for approval",
-        "Current integration issue should be resolved first to avoid risk"
+        "Budget cycle resets Q3 — CFO Chloe Park is the approver",
+        "CFO is ROI-focused — needs data before sign-off",
+        "Open CRM integration ticket should be resolved first"
     ],
-    "recommended_timing": "Initiate expansion conversation in 3-4 weeks once integration is resolved and Q3 budget opens",
+    "recommended_timing": "Prepare ROI one-pager in 2 weeks, schedule expansion call for late April once Q3 budget opens",
     "next_steps": [
-        "Get the integration ticket closed this week",
-        "Prepare a custom expansion quote based on their stated headcount plans",
-        "Schedule a dedicated expansion call — don't do this as an add-on to a check-in"
+        "Escalate open CRM integration ticket — resolve before expansion conversation",
+        "Build ROI one-pager with Hana's time-savings data for CFO audience",
+        "Prepare custom Business 150 quote with per-seat comparison",
+        "Schedule dedicated expansion call — do not attach to regular check-in",
+        "Ask Ben to pre-sell internally to Chloe before formal call"
     ],
-    "rationale": "ScaleUp is organically growing into expansion: they're near plan limits, the champion is vocal about ROI, and they're already thinking about broader rollout. The only thing holding this back is the integration issue and budget timing — both solvable."
+    "rationale": "Acme Corp is organically growing into expansion: they're near plan limits, API usage is accelerating, and their VP Sales proactively raised expansion pricing. The only friction is budget timing and getting the CFO the ROI story she needs — both are solvable in 3-4 weeks."
 }
+
+
+def load_sample_data() -> dict:
+    data = {}
+    for filename in ["account.json", "transcript.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            data[key] = json.loads(path.read_text())
+    return data
 
 
 def has_api_key() -> bool:
@@ -41,16 +54,11 @@ def has_api_key() -> bool:
 
 
 def get_provider() -> str:
-    """Auto-detect provider from which key is actually set."""
-    explicit = os.getenv("LLM_PROVIDER", "").strip()
-    if explicit:
-        return explicit
     if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
         return "anthropic"
     if (os.getenv("OPENAI_API_KEY") or "").strip():
         return "openai"
     return "anthropic"
-
 
 
 def call_llm(prompt: str) -> str:
@@ -90,20 +98,24 @@ Return keys: expansion_ready (bool), confidence (0.0-1.0), buying_signals (list)
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {"expansion_ready": False, "confidence": 0.0, "rationale": f"Parse error.", "buying_signals": [], "blockers": [], "recommended_timing": "unknown", "next_steps": []}
+        return {"expansion_ready": False, "confidence": 0.0, "rationale": "Parse error.", "buying_signals": [], "blockers": [], "recommended_timing": "unknown", "next_steps": []}
 
 
-print(f"Testing Expansion Signal Detector with account: {ACCOUNT_NAME}\n")
+def main():
+    data = load_sample_data()
+    account_name = data.get("account", {}).get("name", "Acme Corp")
+    print(f"Expansion Signal Detector — {account_name}\n")
 
-if not LIVE_MODE:
-    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
-    print(json.dumps(MOCK_OUTPUT, indent=2))
-else:
-    sample = {
-        "account_name": ACCOUNT_NAME,
-        "transcript_snippets": os.getenv("TRANSCRIPT_SNIPPETS", "We're rolling this out to the sales team next quarter... this has transformed our workflow... asked about pricing for 20 more seats"),
-        "post_call_notes": os.getenv("POST_CALL_NOTES", "Champion mentioned they're at 95 seats and approaching their limit. Discussed expansion pricing briefly. Budget opens in Q3."),
-        "usage_summary": os.getenv("USAGE_SUMMARY", "95 of 100 seats active. API calls up 40% month-over-month. 3 power users in engineering team."),
-    }
-    result = detect_expansion_signals(sample)
+    if has_api_key():
+        print(f"[LIVE] API key found — calling {get_provider()} with sample data...\n")
+        result = detect_expansion_signals(data)
+    else:
+        print("[MOCK] No API key — showing sample output.")
+        print("       Set ANTHROPIC_API_KEY or OPENAI_API_KEY to call live LLM.\n")
+        result = MOCK_OUTPUT
+
     print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

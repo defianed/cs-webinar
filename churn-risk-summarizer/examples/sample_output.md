@@ -1,59 +1,76 @@
 # Churn Risk Summarizer — Sample Output
 
+**Account:** Acme Corp | **CSM:** Sarah Johnson | **ARR:** $84K | **Health:** 47/100
+
+---
+
 ## Slack Message (sent to CSM)
 
 ```
-🔴 Churn Risk Alert — TechFlow Inc
+🔴 Churn Risk Alert — Acme Corp
 
 📊 Urgency: HIGH
 
-Summary: TechFlow started strong but has gone quiet over the past 30 days. Two previously active users have stopped logging in entirely. An open support ticket at 12 days is adding friction at exactly the wrong time.
+Summary: Acme Corp started strong but has gone quiet. Login drop, ghost users, a
+stalled support ticket, and two missed check-ins — all in the same 30-day window.
 
 Risk Story:
-TechFlow was an enthusiastic customer in Q3, but the signals shifted in February. Dana hasn't logged in, the monthly check-ins have been ghosted, and NPS dropped two points. The 12-day support ticket isn't just a support problem — at this stage it becomes the reason they leave. If Marcus is pulling back from internal meetings, the economic buyer may already be disengaging.
+The 14-day Salesforce sync ticket is the most urgent issue — not because it's
+technically severe, but because Dana (COO) is personally tracking it. When an
+executive starts watching a support ticket, it's no longer just a support problem.
+It becomes the reason they leave.
+
+Tom and Alicia haven't logged in since February. Marcus mentioned them as intended
+power users. If they've reverted to spreadsheets, that's adoption regression — and
+it will show up in the renewal conversation.
 
 Primary Risks:
-• 12-day open support ticket creating active frustration
-• Login frequency down 40% — 2 ghost users since February
-• Missed last 2 monthly check-ins without rescheduling
-• NPS dropped from 8 → 6 in latest survey
+• 14-day open Salesforce sync ticket — COO tracking it personally
+• Login frequency down 40% — Tom and Alicia inactive since February
+• Missed last 2 monthly check-ins — no meaningful contact in 60 days
+• NPS dropped from 8 to 6 — directional signal, not a crisis yet
 
 Stabilizers:
-• Core product still in use by 62 of 100 seats
-• Renewal is 113 days away — time to course-correct
-• No formal cancellation request yet
+• Core workflow still in use by 61 of 100 seats
+• Renewal is 189 days away — time to course-correct
+• COO confirmed no competitor evaluation underway yet
+• Both stakeholders engaged in QBR and gave specific conditions to improve
 
 Next Call Focus:
-• Lead with the open support ticket — acknowledge the delay, give a timeline
-• Ask about Dana and Tom's inactivity — is there a team change?
-• Reframe check-ins as time-saving, not reporting
-• Ask directly: "Is there anything we should be doing differently?"
+• Lead with the Salesforce ticket — give a WRITTEN resolution date before end of day
+• Schedule separate 30-min call with Tom and Alicia — listening only, no sales
+• Propose fixed monthly check-ins with standing agenda starting April
+• Ask directly: "What would move your renewal confidence from a 6 to an 8?"
 
-Recommended action: Schedule EBR with Marcus Li this week before the support ticket becomes a decision point.
+Recommended action: Resolve Salesforce ticket + re-engage ghost users this week.
+CSM: Sarah Johnson
 ```
+
+---
 
 ## Analysis JSON
 
 ```json
 {
-  "summary": "TechFlow Inc is showing early-to-mid churn indicators with declining usage, disengagement from check-ins, and an unresolved support ticket.",
-  "risk_story": "TechFlow started strong but has gone quiet over the past 30 days. Two users who were previously active have stopped logging in entirely. The open support ticket at 12 days is adding friction at exactly the wrong time — if it's not resolved this week, it becomes the reason they leave.",
+  "summary": "Acme Corp is showing early-to-mid churn indicators: login drop, ghost users, a stalled support ticket, and two missed check-ins.",
+  "risk_story": "Acme Corp started strong but has gone quiet. Two users — Tom and Alicia — haven't logged in since February. The Salesforce sync ticket has been open 14 days with no resolution date, and their COO scored renewal confidence at 6/10 in today's QBR. The open ticket is the most urgent issue: at this stage, an unresolved support problem becomes the reason they leave.",
   "primary_risks": [
-    "12-day open support ticket creating active frustration",
+    "14-day open Salesforce sync ticket — COO is tracking it personally",
     "Login frequency down 40% — 2 ghost users since February",
-    "Missed last 2 monthly check-ins without rescheduling",
+    "Missed last 2 monthly check-ins — two-month communication gap",
     "NPS dropped from 8 to 6 in latest survey"
   ],
   "stabilizers": [
-    "Core product still in use by majority of team (62/100 seats)",
-    "Renewal is 113 days away — time to course-correct",
-    "No formal cancellation request or competitor evaluation confirmed"
+    "Core workflow still in use by 61 of 100 seats",
+    "Renewal is 189 days away — time to course-correct",
+    "COO confirmed no competitor evaluation underway yet",
+    "Both Marcus and Dana engaged in QBR and gave specific recovery conditions"
   ],
   "next_call_focus": [
-    "Lead with the open support ticket — acknowledge the delay, give a concrete timeline",
-    "Ask about Dana and Tom's inactivity — is there a team restructure?",
-    "Reframe check-ins as time-saving, not reporting",
-    "Directly ask: 'Is there anything we should be doing differently?'"
+    "Lead with the Salesforce ticket — give a written resolution date before end of day",
+    "Schedule separate 30-min call with Tom and Alicia — listening only, no sales",
+    "Propose monthly check-ins with fixed agenda starting April",
+    "Ask directly what would move their renewal confidence from 6 to 8"
   ],
   "urgency": "high"
 }

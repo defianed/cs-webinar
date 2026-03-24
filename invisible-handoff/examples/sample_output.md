@@ -1,83 +1,99 @@
 # Invisible Handoff — Sample Output
 
+**Account:** Acme Corp | **CSM:** Sarah Johnson | **ARR:** $48K | **Closed:** 2026-03-20
+
+---
+
 ## Slack Message (sent to incoming CSM)
 
 ```
 📋 Handoff Brief Ready — Acme Corp ($48K ACV)
 
-Deal closed 2026-03-20 by Jake Hoffman. CSM: Sam Rivera.
+Deal closed 2026-03-20 by Jake Hoffman. Your account: Sarah Johnson.
 
-Quick read before your first call 👇
+Read this before your first call 👇
 
-Account: 200-person fintech. Replacing 3 legacy tools with our platform.
-Q3 launch is a HARD deadline — their product team is building on top of the API.
+Company: 200-person fintech. Replacing 3 legacy tools with one platform.
+Q3 launch (August 1) is a HARD deadline — their product team is building on the API.
 
 Key people:
 • Sarah Okonkwo (VP Eng) — your champion. She drove the whole eval. Day-to-day contact.
-• Mike Chen (CTO) — economic buyer. Skeptical. Been burned before on vendor timelines.
-  Do NOT hedge on the API GA date in front of Mike.
-• James (DevOps) — wasn't in any demos. Will do the actual integration work.
-  Get him into the kickoff. He can be a blocker if he feels ignored.
+  Highly bought-in and already advocating internally.
+• Mike Chen (CTO) — economic buyer. Skeptical. Been burned by vendor timelines before.
+  DO NOT hedge on API GA date in his presence. He asked for everything in writing.
+• James Liu (Senior DevOps) — will do the actual integration work.
+  Was NOT in any demos. Get him into kickoff before April. He can be a blocker if ignored.
 
-Commitments we made:
+Commitments made (all in writing per Mike's request):
 ✅ API GA by May 15 — confirmed with product
-✅ Marcus (onboarding engineer) assigned for 30 days
+✅ Marcus (onboarding engineer, ex-Stripe) assigned for 30 days
 ✅ Custom migration guide for Node.js + Postgres
-✅ 50/50 milestone payment agreed
+✅ SOC 2 Type II + pen test results sent with contract
+✅ 50/50 milestone payments — 2nd half tied to API GA confirmation
+✅ 30-day extension if API slips past May 15
 
-First call agenda suggestion:
-1. Introduce Marcus — confirm his availability
-2. Confirm API GA date in writing, in the call
-3. Get James on the kickoff invite
-4. Walk through migration guide outline together
-5. Set weekly sync cadence through Q3 launch
+First call agenda (suggested):
+1. Introduce yourself — confirm you've read Jake's deal summary
+2. Introduce Marcus — confirm his 30-day exclusive availability
+3. Confirm API GA date (May 15) on the call — have it in writing
+4. Get James on the kickoff invite — ask Sarah to facilitate
+5. Walk migration guide outline together
+6. Set weekly sync through Q3 launch
 
 Full brief below ↓
+
+CSM: Sarah Johnson
 ```
+
+---
 
 ## Analysis JSON
 
 ```json
 {
-  "account_overview": "Acme Corp is a 200-person fintech company that closed a $48K ACV deal on 2026-03-20. Sarah (VP Engineering) is the champion who drove the full evaluation. Mike (CTO) holds budget and was skeptical — he's been burned by vendor timeline promises before. The deal closed faster than average because they were actively evaluating two other vendors.",
+  "account_overview": "Acme Corp is a 200-person fintech that closed a $48K ACV deal on 2026-03-20. Sarah Okonkwo (VP Engineering) is the champion. Mike Chen (CTO) is the economic buyer and openly skeptical — been burned by vendor promises before. James Liu (Senior DevOps) will own the integration but was not in any demos.",
   "customer_goals": [
-    "Replace fragmented toolchain (3 tools → 1 platform) by Q3",
+    "Replace fragmented 3-tool toolchain with single platform by Q3",
     "Reduce time-to-integrate from 3 weeks to under 5 days",
-    "Hit Q3 product launch deadline with new API layer in place"
+    "Hit Q3 product launch deadline (August 1) with API layer in place"
   ],
   "pain_points": [
-    "Previous vendor had good uptime but terrible support SLAs — left them stranded",
-    "Engineering team is stretched — any migration overhead is costly",
-    "CTO is skeptical of vendor commitments after being burned before"
+    "Previous vendors had good uptime but terrible support SLAs — left them stranded",
+    "Engineering team is stretched — migration overhead is costly",
+    "CTO skeptical of vendor commitments after being burned before"
   ],
   "commitments_made": [
-    "API GA by May 15 — confirmed with product team",
-    "Dedicated onboarding engineer (Marcus) for first 30 days",
+    "API GA by May 15 — confirmed with product team, not estimated",
+    "Marcus (senior onboarding engineer, ex-Stripe) assigned for 30 days",
     "Custom migration guide for Node.js + Postgres stack",
-    "Milestone-based payment: 50% at kickoff, 50% at API GA"
+    "SOC 2 Type II report and pen test results sent with contract",
+    "Milestone payments: 50% kickoff, 50% at API GA confirmation",
+    "30-day contract extension if API slips past May 15"
   ],
   "objections_handled": [
-    "Security: SOC 2 Type II + pen test report reviewed and approved",
-    "Migration effort: committed to co-building migration guide",
-    "Pricing: milestone-based payment schedule agreed",
-    "Competitor comparison: outlined 3 technical differentiators vs DataBridge"
+    "Security: SOC 2 Type II certified + pen test report provided",
+    "Migration risk: Marcus has prior Node.js migration experience (Stripe)",
+    "Reliability: milestone payments tied to delivery, not time",
+    "Competitors: differentiated vs DataBridge and NovaSuite on 3 technical points"
   ],
   "key_stakeholders": [
-    {"name": "Sarah Okonkwo", "title": "VP Engineering", "role": "Champion — drove evaluation, day-to-day contact"},
-    {"name": "Mike Chen", "title": "CTO", "role": "Economic buyer — skeptical, needs action not promises"},
-    {"name": "James", "title": "Senior DevOps", "role": "Will own the integration — wasn't in demo, get him into kickoff"}
+    {"name": "Sarah Okonkwo", "title": "VP Engineering", "role": "Champion — drove evaluation, day-to-day contact, highly bought-in"},
+    {"name": "Mike Chen", "title": "CTO", "role": "Economic buyer — skeptical, wants written record of all commitments, will be watching closely"},
+    {"name": "James Liu", "title": "Senior DevOps", "role": "Will own integration — NOT in any demos, get him into kickoff ASAP"}
   ],
-  "urgency_timeline": "Q3 launch deadline is hard. API GA date is May 15. First CSM call must happen within 48 hours of deal close.",
+  "urgency_timeline": "Q3 launch is August 1 (hard deadline). API GA is May 15. First CSM call within 24 hours of deal close (March 20). Kickoff with James must happen before April.",
   "watchouts": [
-    "Mike's skepticism is real — do not hedge on the API GA date in his presence",
-    "API GA date is tight — reconfirm with product before first call",
-    "James wasn't in any demos — he will have his own concerns, get him on kickoff"
+    "Mike's skepticism is real and earned — do not hedge or over-promise in his presence",
+    "API GA (May 15) is tight — reconfirm with product before first call, never guess",
+    "James was not in demos — he will have concerns, do not assume Sarah speaks for him",
+    "Mike explicitly asked for written record of all commitments — send deal summary today"
   ],
   "suggested_first_call_agenda": [
-    "Introduce Marcus (onboarding engineer) and confirm his 30-day availability",
-    "Confirm API GA date on the call — show it in writing",
-    "Get James added to kickoff invite — ask Sarah to facilitate",
-    "Walk through migration guide outline together",
+    "Introduce yourself and confirm you've read Jake's deal summary",
+    "Introduce Marcus — confirm his 30-day exclusive availability",
+    "Confirm API GA date (May 15) out loud — ask Mike to confirm he has it in writing",
+    "Get James added to kickoff — ask Sarah to facilitate the intro",
+    "Walk through migration guide outline — get James's input on Node.js specifics",
     "Set weekly sync cadence through Q3 launch"
   ]
 }

@@ -1,17 +1,22 @@
 {
-  "account_name": "Acme Corp",
+  "name": "Acme Corp",
   "arr": 48000,
-  "deal_value": "$48,000 ACV",
-  "plan": "Professional",
-  "csm_name": "Sam Rivera",
+  "health_score": null,
+  "tier": "Enterprise",
+  "csm_name": "Sarah Johnson",
+  "contract_end_date": "2027-03-20",
+  "seats_total": 50,
   "deal_closed_date": "2026-03-20",
-  "sales_rep": "Jake Hoffman",
+  "deal_closed_by": "Jake Hoffman",
+  "company_size": 200,
+  "industry": "fintech",
   "champion": "Sarah Okonkwo, VP Engineering",
   "economic_buyer": "Mike Chen, CTO",
-  "q3_launch_deadline": "2026-09-01",
-  "team_size": 200,
-  "industry": "Fintech",
-  "prior_vendor": "Legacy internal toolchain (3 separate tools)",
-  "competitors_evaluated": ["DataBridge", "NovaSuite"],
-  "payment_terms": "Milestone-based: 50% on kickoff, 50% on API GA"
+  "implementation_contact": "James Liu, Senior DevOps",
+  "q3_launch_deadline": "2026-08-01",
+  "payment_terms": "50% at kickoff, 50% at API GA",
+  "competitors_evaluated": [
+    "DataBridge",
+    "NovaSuite"
+  ]
 }

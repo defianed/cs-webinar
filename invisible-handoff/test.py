@@ -1,8 +1,8 @@
-# Local test — no Modal required. Run: python3 test.py
-# To run with live AI: python3 test.py --live
-import os, json, sys
-
-LIVE_MODE = "--live" in sys.argv
+# test.py — zero setup required. If API key found, calls real LLM with sample_data/.
+# Otherwise prints labelled mock output and exits 0.
+# Run: python3 test.py
+import os, json
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -10,49 +10,65 @@ try:
 except ImportError:
     pass
 
-
-ACCOUNT_NAME = os.getenv("ACCOUNT_NAME", "Acme Corp")
+WORKFLOW_DIR = Path(__file__).parent
 
 MOCK_OUTPUT = {
-    "account_overview": "Acme Corp is a 200-person fintech company that closed a $48K ACV deal. Sarah (VP Engineering) is the champion; Mike (CTO) holds budget. Deal closed faster than average — they were actively evaluating two other vendors.",
+    "account_overview": "Acme Corp is a 200-person fintech that closed a $48K ACV deal on 2026-03-20. Sarah Okonkwo (VP Engineering) is the champion who drove the eval. Mike Chen (CTO) is the economic buyer and is openly skeptical — he's been burned by vendor promises before. James Liu (Senior DevOps) will do the actual integration work and was not in any demos.",
     "customer_goals": [
+        "Replace fragmented 3-tool toolchain with a single platform by Q3",
         "Reduce time-to-integrate from 3 weeks to under 5 days",
-        "Replace their current fragmented toolchain (3 tools → 1 platform)",
-        "Hit their Q3 product launch with the new API layer in place"
+        "Hit Q3 product launch deadline (August 1) with API layer in place"
     ],
     "pain_points": [
-        "Previous vendor had good uptime but terrible support SLAs — left them stranded",
-        "Engineering team is stretched thin — any migration overhead is costly",
-        "Their CTO is skeptical of vendor commitments after being burned before"
+        "Previous vendors had good uptime but terrible support SLAs — left them stranded",
+        "Engineering team is stretched — migration overhead is costly",
+        "CTO is skeptical of vendor commitments and will be watching closely"
     ],
     "commitments_made": [
-        "API will be GA by May 15 — confirmed with product",
-        "Dedicated onboarding engineer (Marcus) assigned for 30 days",
-        "Custom migration guide for their stack (Node.js + Postgres)"
+        "API GA by May 15 — confirmed with product team, not estimated",
+        "Marcus (senior onboarding engineer, ex-Stripe) assigned exclusively for 30 days",
+        "Custom migration guide for Node.js + Postgres stack",
+        "SOC 2 Type II report and pen test results sent with contract",
+        "Milestone-based payment: 50% at kickoff, 50% on API GA",
+        "30-day contract extension if API slips past May 15"
     ],
     "objections_handled": [
-        "Security: SOC 2 Type II + pen test report shared and reviewed",
-        "Pricing: Agreed to milestone-based payment schedule",
-        "Migration effort: Committed to co-building migration guide"
+        "Security: SOC 2 Type II certified + pen test report provided",
+        "Migration risk: Marcus has prior Node.js migration experience at Stripe",
+        "Vendor reliability: milestone-based payments tied to delivery, not time",
+        "Competitor comparison: outlined differentiators vs DataBridge and NovaSuite"
     ],
     "key_stakeholders": [
-        {"name": "Sarah", "title": "VP Engineering", "role": "Champion — drove evaluation, day-to-day contact"},
-        {"name": "Mike", "title": "CTO", "role": "Economic buyer — skeptical, needs to see action not promises"},
-        {"name": "James", "title": "Senior DevOps", "role": "Will own the integration — address his operational concerns early"}
+        {"name": "Sarah Okonkwo", "title": "VP Engineering", "role": "Champion — drove evaluation, day-to-day contact, highly bought-in"},
+        {"name": "Mike Chen", "title": "CTO", "role": "Economic buyer — skeptical, wants written record of all commitments, will be watching"},
+        {"name": "James Liu", "title": "Senior DevOps", "role": "Will own integration — was NOT in demos, get him into kickoff ASAP"}
     ],
-    "urgency_timeline": "Q3 launch deadline is hard. API GA date is May 15. First CSM call should happen within 48 hours of deal close.",
+    "urgency_timeline": "Q3 product launch is August 1 (hard deadline). API GA is May 15. First CSM call must happen within 24 hours of deal close (March 20). Kickoff with James must happen before April.",
     "watchouts": [
-        "Mike's skepticism is real — he's been burned before. Do not overpromise in early calls.",
-        "API GA date is tight. Confirm with product before first call and do not hedge.",
-        "James wasn't in the demo. He'll have his own concerns. Get him into the kickoff."
+        "Mike's skepticism is real and earned — do not hedge or over-promise in his presence",
+        "API GA date (May 15) is tight — reconfirm with product before first call, never guess",
+        "James was not in any demos — he will have his own concerns, do not assume alignment",
+        "Mike asked for a written record of everything promised — send deal summary today"
     ],
     "suggested_first_call_agenda": [
-        "1. Introduce Marcus (onboarding engineer) and confirm availability",
-        "2. Confirm API GA date and show it in writing",
-        "3. Walk through migration guide outline — get James involved",
-        "4. Set weekly check-in cadence through Q3 launch"
+        "Introduce yourself and confirm you've read Jake's deal summary",
+        "Introduce Marcus — confirm his 30-day exclusive availability",
+        "Confirm API GA date (May 15) out loud and ask Mike to confirm he has it in writing",
+        "Get James added to kickoff — ask Sarah to facilitate the intro",
+        "Walk through migration guide outline — get James's input on Node.js specifics",
+        "Set weekly sync cadence through Q3 launch"
     ]
 }
+
+
+def load_sample_data() -> dict:
+    data = {}
+    for filename in ["account.json", "transcript.json", "tickets.json"]:
+        path = WORKFLOW_DIR / "sample_data" / filename
+        if path.exists():
+            key = filename.replace(".json", "")
+            data[key] = json.loads(path.read_text())
+    return data
 
 
 def has_api_key() -> bool:
@@ -60,16 +76,11 @@ def has_api_key() -> bool:
 
 
 def get_provider() -> str:
-    """Auto-detect provider from which key is actually set."""
-    explicit = os.getenv("LLM_PROVIDER", "").strip()
-    if explicit:
-        return explicit
     if (os.getenv("ANTHROPIC_API_KEY") or "").strip():
         return "anthropic"
     if (os.getenv("OPENAI_API_KEY") or "").strip():
         return "openai"
     return "anthropic"
-
 
 
 def call_llm(prompt: str) -> str:
@@ -109,20 +120,24 @@ Return keys: account_overview, customer_goals (list), pain_points (list), commit
     try:
         return json.loads(raw.strip())
     except Exception:
-        return {"account_overview": raw, "parse_error": True}
+        return {"account_overview": "Parse error", "parse_error": True, "raw": raw[:500]}
 
 
-print(f"Testing Invisible Handoff with account: {ACCOUNT_NAME}\n")
+def main():
+    data = load_sample_data()
+    account_name = data.get("account", {}).get("name", "Acme Corp")
+    print(f"Invisible Handoff — {account_name}\n")
 
-if not LIVE_MODE:
-    print("Sample output — run with: python3 test.py --live  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY in .env)\n")
-    print(json.dumps(MOCK_OUTPUT, indent=2))
-else:
-    sample = {
-        "account_name": ACCOUNT_NAME,
-        "deal_value": os.getenv("DEAL_VALUE", "$48,000 ACV"),
-        "transcript_summary": os.getenv("TRANSCRIPT_SUMMARY", "Closed Won. Final call confirmed API GA, dedicated onboarding engineer, and milestone-based payments."),
-        "sales_rep_notes": os.getenv("SALES_REP_NOTES", "Champion is Sarah VP Eng. CTO Mike is skeptical. Q3 launch is hard deadline. Watch James in DevOps — wasn't in demo."),
-    }
-    result = build_brief(sample)
+    if has_api_key():
+        print(f"[LIVE] API key found — calling {get_provider()} with sample data...\n")
+        result = build_brief(data)
+    else:
+        print("[MOCK] No API key — showing sample output.")
+        print("       Set ANTHROPIC_API_KEY or OPENAI_API_KEY to call live LLM.\n")
+        result = MOCK_OUTPUT
+
     print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

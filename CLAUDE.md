@@ -1,227 +1,150 @@
 # CLAUDE.md — CS Workflow Templates
 
-You are helping a Customer Success leader set up, test, and run these agentic CS workflows locally using Claude Code. Your job is to be a guided setup assistant — take them from zero to a working local test, then optionally deploy to the cloud.
-
----
-
 ## What This Repo Is
 
-5 plug-and-play agentic CS workflows built by [ExtensibleAgents.com](https://extensibleagents.com). Each one automates a specific high-friction moment in the CS lifecycle:
+5 plug-and-play agentic CS workflows. Each automates a high-friction moment in the CS lifecycle.
 
-| Workflow | Problem it solves |
-|----------|------------------|
-| **Invisible Handoff** | CSM shows up to first customer call underprepared — sales-to-CS handoff was a Slack message and some notes |
-| **Trust Radar** | CSM can't tell if a win-back customer is genuinely leaving or just negotiating |
-| **Expansion Signal Detector** | Upsell opportunities sitting in transcripts go unnoticed until the moment passes |
-| **Churn Risk Summarizer** | Health scores give a number, not a story. CSM walks into a QBR without knowing why |
-| **Earned Ask** | Review requests go out at the wrong time, with the wrong message, and get ignored |
-
----
-
-## Three Run Modes
-
-### Mode 1 — Instant demo (no setup required)
-```bash
-python3 test.py
-```
-Shows you what the workflow does with **built-in sample data**. Zero config. No API key. Always works. Use this in demos or to understand what a workflow produces before wiring it up.
-
-### Mode 2 — Local manual mode (sample_data/ files)
-```bash
-python3 local.py
-```
-Loads `sample_data/account.json` and `sample_data/notes.json` from the workflow folder and renders the mock output. No API key required. Useful for onboarding, demos, and customising the sample data to match your own accounts.
-
-**To use manual mode:** edit `config.yaml` in the workflow folder and set:
-```yaml
-provider:
-  llm: manual
-```
-
-### Mode 3 — Local live LLM mode (your own API key)
-```bash
-cp .env.example .env
-# Edit .env — add ANTHROPIC_API_KEY or OPENAI_API_KEY
-# Edit config.yaml — set provider.llm: anthropic (or openai)
-python3 local.py
-```
-Runs the actual workflow logic using a real LLM. Costs ~$0.02–0.05 per run. Requires an API key.
-
-### Mode 4 — Cloud deploy (production use)
-```bash
-modal deploy execution/main.py
-```
-Deploys as a cloud function with Modal. For always-on production use — triggered by CRM webhooks, Gong, Zapier, etc.
+| Workflow | What it does |
+|----------|-------------|
+| **invisible-handoff** | Turns a Closed Won deal into a structured CSM handoff brief — so your first call isn't the first time you've heard of the account |
+| **trust-radar** | Reads a win-back or escalation call transcript and tells you: is this customer genuinely leaving, or are they negotiating? |
+| **expansion-signal-detector** | Scans call transcripts for buying signals that a customer is ready to expand — before the moment passes |
+| **churn-risk-summarizer** | Turns recent account activity into a plain-language churn risk story — tells you *why* the health score is declining, not just the number |
+| **earned-ask** | Detects when a customer has earned a review request and drafts the email — gets the timing and message right |
 
 ---
 
-## config.yaml — Non-Secret Configuration
+## Three Ways to Run Each Workflow
 
-Each workflow has a `config.yaml` file. This is where you configure **which providers to use** — not secrets. Secrets always go in `.env`.
-
-```yaml
-# Non-secret configuration (secrets go in .env)
-account_name: "TechFlow Inc"
-csm_name: "Alex Chen"
-provider:
-  llm: manual       # anthropic | openai | manual
-  crm: manual       # manual | salesforce | hubspot
-  transcript: manual  # manual | gong | fireflies
-```
-
-**Provider options:**
-- `llm: manual` — use built-in mock output (no API key needed)
-- `llm: anthropic` — use Claude (requires `ANTHROPIC_API_KEY` in `.env`)
-- `llm: openai` — use GPT-4o (requires `OPENAI_API_KEY` in `.env`)
-
-If you set `llm: anthropic` but the API key is missing or invalid, `local.py` will automatically fall back to manual mode and tell you why — it will never crash.
-
----
-
-## sample_data/ — Fixture Files
-
-Each workflow has a `sample_data/` folder with two JSON files:
-
-| File | Contents |
-|------|----------|
-| `account.json` | Account context: name, ARR, CSM, renewal date, champion, etc. |
-| `notes.json` | Recent interaction notes, transcript snippets, support summary |
-
-When running in **manual mode**, `local.py` loads these files and combines them as the input data. You can edit them to match a real account before a demo or call prep session.
-
----
-
-## examples/ — Sample Output
-
-Each workflow has an `examples/sample_output.md` file that shows exactly what the workflow produces — Slack message format and the full analysis JSON. Read these to understand what to expect before running anything.
-
----
-
-## Repo Structure
-
-```
-cs-webinar/
-├── README.md                          # 60-second quickstart
-├── CLAUDE.md                          # This file
-├── requirements.txt                   # pip install -r requirements.txt
-├── churn-risk-summarizer/
-│   ├── config.yaml                    # Provider config (no secrets)
-│   ├── sample_data/
-│   │   ├── account.json               # Sample account context
-│   │   └── notes.json                 # Sample notes / activity
-│   ├── examples/
-│   │   └── sample_output.md           # What this workflow produces
-│   ├── local.py                       # Run locally (manual or live LLM)
-│   ├── test.py                        # Instant demo with built-in mock data
-│   ├── execution/main.py              # Modal cloud function
-│   ├── .env.example                   # Credential template
-│   └── README.md                      # Workflow-specific docs
-├── earned-ask/                        # Same structure
-├── expansion-signal-detector/         # Same structure
-├── invisible-handoff/                 # Same structure
-└── trust-radar/                       # Same structure
-```
-
----
-
-## How to Guide the Client
-
-### Step 1 — Check prerequisites
+### 1. `python3 test.py` — Zero setup, see output in 30 seconds
 
 ```bash
-python3 --version   # Need 3.8+
-pip --version
-```
-
-### Step 2 — Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3 — See what a workflow does (no setup)
-
-```bash
-cd earned-ask
+cd churn-risk-summarizer
 python3 test.py
 ```
 
-Recommend **Earned Ask** first — it's the simplest and the output is immediately legible.
+- No API key needed — prints realistic mock output
+- If `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set in your environment: calls the real LLM with `sample_data/` fixtures
+- Always exits 0
 
-### Step 4 — Customise the sample data
-
-Edit `sample_data/account.json` and `sample_data/notes.json` to match a real account. Then:
-```bash
-python3 local.py   # Uses manual mode — no API key needed
-```
-
-### Step 5 — Run with a real API key
+### 2. `python3 local.py` — Local run with your config
 
 ```bash
+cd churn-risk-summarizer
 cp .env.example .env
-# Add ANTHROPIC_API_KEY to .env
-# Edit config.yaml: set provider.llm: anthropic
+# edit .env — add your API key
 python3 local.py
 ```
 
-Cost per run: ~$0.02–0.05 with Claude Sonnet. ~$0.03–0.06 with GPT-4o.
+- Reads `config.yaml` for account name, CSM name, provider settings
+- Loads data from `sample_data/` when `provider=manual` (the default)
+- Calls real LLM if API key is set in `.env`
 
-### Step 6 — Cloud deployment (when ready)
+### 3. `modal deploy execution/main.py` — Production cloud deployment
 
 ```bash
 pip install modal
-modal token new    # Opens browser, log in to modal.com (free account)
-
-modal secret create earned-ask-secrets \
-  LLM_PROVIDER=anthropic \
-  ANTHROPIC_API_KEY=sk-ant-...
-
+modal token new
+modal secret create churn-risk-summarizer-secrets ANTHROPIC_API_KEY=sk-ant-...
 modal deploy execution/main.py
 ```
 
+You get a webhook URL. Point your CRM, Gong, or Zapier at it and the workflow runs automatically.
+
 ---
 
-## Common Errors and Fixes
+## How `config.yaml` Works
+
+Each workflow has a `config.yaml` in its root:
+
+```yaml
+# Who you are
+account_name: Acme Corp
+csm_name: Sarah Johnson
+slack_channel: "#cs-alerts"
+
+# What tools you use (provider=manual means use sample_data/ files)
+crm_provider: manual        # manual | salesforce | hubspot
+transcript_provider: manual # manual | gong | fireflies | fathom | zoom
+support_provider: manual    # manual | zendesk | intercom
+
+# Workflow-specific settings (varies per workflow)
+min_confidence: 0.7
+```
+
+**`provider=manual`** means: load data from the `sample_data/` folder in that workflow. No external API needed.
+
+**To connect a real provider**, change the value (e.g., `crm_provider: hubspot`) and add the credentials to `.env`. The `.env.example` file shows which variables you need.
+
+**The LLM is auto-detected from your API key** — no LLM provider setting needed. If `ANTHROPIC_API_KEY` is set, it uses claude-opus-4-6. If `OPENAI_API_KEY` is set, it uses gpt-4o.
+
+---
+
+## How `sample_data/` Works
+
+Every workflow ships with realistic fixture files you can run against immediately:
+
+| File | What's in it |
+|------|-------------|
+| `account.json` | Fake Acme Corp account — ARR, health score, tier, CSM name, contract end date |
+| `transcript.json` | ~400-word realistic CS conversation relevant to the workflow |
+| `tickets.json` | 3 fake support tickets with title, status, priority, body |
+
+These are the defaults when `provider=manual`. They work with both `test.py` (mock mode) and `local.py` (live LLM mode).
+
+To use your own data without connecting a real provider: edit the files in `sample_data/` directly, or paste your transcript text into `transcript.json`.
+
+See `examples/sample_output.md` in each workflow for what good output looks like.
+
+---
+
+## How to Add a New Provider (e.g., Fathom)
+
+1. In `config.yaml`, set `transcript_provider: fathom`
+2. In `execution/main.py`, find the `get_transcript_text()` function — it has a conditional block for each provider
+3. Add an `elif provider == "fathom":` block that calls the Fathom API and returns the transcript as a string
+4. Add `FATHOM_API_KEY` to `.env.example` and your real `.env`
+
+All workflows follow the same pattern. The `manual` path (loading from `sample_data/transcript.json`) is the reference implementation — it shows exactly what format the transcript needs to be in.
+
+---
+
+## Common Errors
 
 **`ModuleNotFoundError: No module named 'anthropic'`**
 ```bash
-pip install -r requirements.txt
+pip install anthropic openai slack-sdk requests pyyaml python-dotenv
 ```
 
-**`AuthenticationError` from Anthropic or OpenAI**
-The API key in `.env` is wrong or revoked. Set `provider.llm: manual` in `config.yaml` to run without it.
+**`AuthenticationError`**
+Your API key in `.env` is wrong — no spaces, no quotes around the value. Anthropic keys start with `sk-ant-`. OpenAI keys start with `sk-`.
 
-**`ModuleNotFoundError: No module named 'yaml'`**
-```bash
-pip install pyyaml
-```
-
-**`KeyError` or `IndexError` when parsing output**
-The LLM returned unexpected output. Switch to a stronger model in `.env`:
-```
-ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
-```
+**`KeyError` or `IndexError` when parsing**
+The LLM returned something unexpected. These workflows use `claude-opus-4-6` by default — don't downgrade it.
 
 **Slack DM not arriving**
 - `SLACK_BOT_TOKEN` must start with `xoxb-`
-- `CSM_SLACK_USER_ID` must be a Slack member ID (`U012AB3CD`), not `@username`
+- `CSM_SLACK_USER_ID` must be a member ID like `U012AB3CD`, not `@username`
+- The bot must be installed to the workspace
+
+**Salesforce auth error**
+`SALESFORCE_PASSWORD` must include the security token appended directly to the password (no space).
 
 ---
 
 ## Provider Cheat Sheet
 
-| Category | Options | Config key |
-|----------|---------|------------|
-| LLM | anthropic, openai, manual | `provider.llm` in config.yaml |
-| CRM | salesforce, hubspot, manual | `provider.crm` in config.yaml |
-| Transcripts | gong, fireflies, manual | `provider.transcript` in config.yaml |
+| Category | Options | Default |
+|----------|---------|---------|
+| LLM | Anthropic, OpenAI | auto-detected from API key |
+| CRM | Salesforce, HubSpot, manual | manual |
+| Transcripts | Gong, Fireflies, Fathom, Zoom, manual | manual |
+| Support tickets | Zendesk, Intercom, manual | manual |
 
-**You don't need all of them.** Every workflow works with `manual` for all providers — paste sample text into `sample_data/notes.json` and you're running in seconds. Wire up real integrations once the workflow is proven locally.
+Start with `manual` for everything. Connect real providers once you've validated the output quality.
 
 ---
 
 ## Need Help?
 
 Built by [ExtensibleAgents](https://extensibleagents.com) — the agentic CS platform co-founded by Lincoln Murphy and Lewis Thompson.
-
-Visit **[extensibleagents.com](https://extensibleagents.com)** if you want help customising these for your stack or want to see a full agentic CS deployment.
