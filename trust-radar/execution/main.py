@@ -1360,10 +1360,8 @@ async def scheduled_poll():
     Scheduled function to poll for new calls needing analysis.
     Can be used as a fallback when webhooks aren't available.
     """
-    # This is a placeholder - in production, this would query your call provider
-    # for recent calls marked as "needs_analysis" or similar
-    print("Scheduled poll - implement based on your call provider's query capabilities")
-    return {"status": "polling_complete", "calls_processed": 0}
+    print("Scheduled poll ran. No polling source configured, so no calls were processed.")
+    return {"status": "polling_complete", "calls_processed": 0, "mode": "manual_or_webhook_only"}
 
 
 @app.function(image=image)

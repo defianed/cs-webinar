@@ -1,5 +1,5 @@
-"""Invisible Handoff — tool-agnostic CS workflow template.
-Deploy with: modal deploy main.py
+"""Invisible Handoff — beginner-friendly CS handoff workflow.
+Deploy with: modal deploy execution/main.py
 """
 
 import json
@@ -22,21 +22,37 @@ def _env(name: str, default: str = "") -> str:
     return os.getenv(name, default)
 
 
-def get_crm_context(opportunity_id: str, account_id: str) -> dict[str, Any]:
-    provider = _env("CRM_PROVIDER", "salesforce")
+def build_input_context(payload: dict[str, Any]) -> dict[str, Any]:
+    """Build a clean handoff context from provided payload fields.
+
+    This workflow is intentionally beginner-friendly: it works from the text you
+    provide (transcript snippets, sales notes, deal context) without requiring
+    live CRM or call-transcript integrations.
+    """
     return {
-        "provider": provider,
-        "opportunity_id": opportunity_id,
-        "account_id": account_id,
-        "status": "placeholder_context",
+        "account_id": payload.get("account_id", ""),
+        "opportunity_id": payload.get("opportunity_id", ""),
+        "account_name": payload.get("account_name", ""),
+        "customer_segment": payload.get("customer_segment", ""),
+        "acv": payload.get("acv", ""),
+        "close_notes": payload.get("close_notes", ""),
+        "sales_summary": payload.get("sales_summary", ""),
+        "implementation_context": payload.get("implementation_context", ""),
     }
 
 
-def get_transcript(call_id: str, transcript_text: str = "") -> str:
+def get_transcript_text(payload: dict[str, Any]) -> str:
+    transcript_text = payload.get("transcript_text", "")
     if transcript_text:
         return transcript_text
-    provider = _env("CALL_TRANSCRIPT_PROVIDER", "gong")
-    return f"[Placeholder transcript from {provider}] call_id={call_id}"
+
+    fallback_parts = [
+        payload.get("sales_summary", ""),
+        payload.get("close_notes", ""),
+        payload.get("implementation_context", ""),
+    ]
+    combined = "\n\n".join(part.strip() for part in fallback_parts if part and part.strip())
+    return combined
 
 
 def call_llm(prompt: str) -> str:
@@ -56,21 +72,21 @@ def call_llm(prompt: str) -> str:
     return resp.content[0].text
 
 
-def build_brief(crm_context: dict[str, Any], transcript: str, payload: dict[str, Any]) -> dict[str, Any]:
+def build_brief(input_context: dict[str, Any], transcript: str, payload: dict[str, Any]) -> dict[str, Any]:
     prompt = f"""Create a JSON CSM handoff brief.
 
-CRM CONTEXT:
-{json.dumps(crm_context, indent=2)}
+INPUT CONTEXT:
+{json.dumps(input_context, indent=2)}
 
 PAYLOAD CONTEXT:
 {json.dumps(payload, indent=2)}
 
-TRANSCRIPT:
+SALES TRANSCRIPT / NOTES:
 {transcript[:9000]}
 
 Return JSON with keys:
-customer_goals, pain_points, commitments_made, objections_raised, stakeholder_map,
-communication_style, onboarding_risks, first_call_agenda, top_3_watchouts, brief_summary.
+account_overview, customer_goals, pain_points, commitments_made, objections_handled,
+stakeholder_map, communication_style, onboarding_risks, first_call_agenda, top_3_watchouts, brief_summary.
 Return valid JSON only.
 """
     raw = call_llm(prompt)
@@ -78,10 +94,11 @@ Return valid JSON only.
         return json.loads(raw)
     except Exception:
         return {
+            "account_overview": "",
             "customer_goals": [],
             "pain_points": [],
             "commitments_made": [],
-            "objections_raised": [],
+            "objections_handled": [],
             "stakeholder_map": [],
             "communication_style": "",
             "onboarding_risks": [],
@@ -134,10 +151,10 @@ def slack_notify(csm_slack_user_id: str, account_name: str, brief: dict[str, Any
 @app.function(image=image, secrets=[modal.Secret.from_name("invisible-handoff-secrets")])
 @modal.fastapi_endpoint(method="POST")
 def webhook(data: dict[str, Any]) -> dict[str, Any]:
-    crm_context = get_crm_context(data.get("opportunity_id", ""), data.get("account_id", ""))
-    transcript = get_transcript(data.get("call_id", ""), data.get("transcript_text", ""))
-    brief = build_brief(crm_context, transcript, data)
-    account_name = data.get("account_name") or crm_context.get("account_id") or "Unknown Account"
+    input_context = build_input_context(data)
+    transcript = get_transcript_text(data)
+    brief = build_brief(input_context, transcript, data)
+    account_name = data.get("account_name") or data.get("account_id") or "Unknown Account"
     title = f"{account_name} — Invisible Handoff Brief — {datetime.utcnow().date().isoformat()}"
     notion_url = post_to_notion(title, brief)
     slack_notify(data.get("csm_slack_user_id", ""), account_name, brief, notion_url)
@@ -158,9 +175,11 @@ def main():
     sample = webhook.local({
         "account_id": _env("ACCOUNT_ID"),
         "opportunity_id": _env("OPPORTUNITY_ID"),
-        "call_id": _env("CALL_ID"),
         "account_name": _env("ACCOUNT_NAME"),
         "csm_slack_user_id": _env("CSM_SLACK_USER_ID"),
         "transcript_text": _env("TRANSCRIPT_TEXT"),
+        "sales_summary": _env("SALES_SUMMARY"),
+        "close_notes": _env("CLOSE_NOTES"),
+        "implementation_context": _env("IMPLEMENTATION_CONTEXT"),
     })
     print(json.dumps(sample, indent=2))

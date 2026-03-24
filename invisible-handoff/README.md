@@ -4,9 +4,9 @@ Turns the context from a Closed Won sales call into a structured CSM handoff bri
 
 ## What it does
 
-When a deal closes, the CSM shouldn't be going into their first call blind. This workflow takes sales call notes and context, then generates a structured handoff brief covering: what the customer cares about, what was promised, key stakeholders, watchouts, and a suggested first-call agenda.
+This workflow takes the sales context you already have — transcript snippets, close notes, implementation context, or a written sales summary — and turns it into a structured CSM handoff brief covering what the customer cares about, what was promised, key stakeholders, watchouts, and a suggested first-call agenda.
 
-When connected to live CRM and call transcript providers (Gong, Fireflies), it pulls the data automatically. Without live connections, it works from the text summaries you provide.
+It's designed to be useful immediately: paste in your sales notes, run the test, and see the kind of brief a CSM would receive.
 
 ## Quickstart (3 steps)
 
@@ -38,8 +38,15 @@ python3 test.py --live
 
 ## Environment variables
 
-See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) is required for the text-processing path. CRM and transcript provider credentials are optional — only needed if connecting live data sources.
+See `.env.example`. Only `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) and `SLACK_BOT_TOKEN` are required to run the full webhook path.
 
-## Note on live integrations
+`NOTION_API_KEY` and `NOTION_PARENT_PAGE_ID` are optional if you want the brief written to Notion.
 
-CRM and transcript integrations (Salesforce, HubSpot, Gong, Fireflies) are provided as placeholder adapters. You can connect them by setting the relevant env vars and extending the adapter classes in `execution/main.py`.
+## How to use it in practice
+
+You can use this workflow in two ways:
+
+1. **Beginner / manual-input mode** — paste transcript text, close notes, or a written sales summary into the payload or test file.
+2. **Connected mode** — wire your own CRM / transcript source upstream and pass the resulting text into this workflow.
+
+That keeps the workflow tool-agnostic without pretending it ships with live provider adapters out of the box.
