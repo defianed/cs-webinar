@@ -54,6 +54,28 @@ sample = {
     "post_call_notes": os.getenv("POST_CALL_NOTES", "Customer proactively asked about API rate limits, suggesting higher volume needs."),
 }
 
+# --- No API key? Show mock output and exit ---
+if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
+    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
+    mock = {
+        "ready_for_expansion": True,
+        "confidence": "high",
+        "buying_signals": [
+            "Explicitly asked about enterprise tier pricing",
+            "Mentioned EMEA rollout planned for next quarter",
+            "Asked about API rate limits — suggests higher volume needs",
+            "Referenced bringing the finance team on"
+        ],
+        "blockers": [
+            "Multi-region support availability not confirmed",
+            "Budget approval may be required"
+        ],
+        "recommended_next_action": "Schedule a discovery call focused on enterprise tier — customer is signalling intent. Come prepared with volume pricing and multi-region specs.",
+        "summary": "ScaleUp Ltd is showing strong expansion signals. They are planning a full EMEA rollout next quarter and proactively asked about enterprise features and API limits. High-confidence expansion opportunity — act within 2 weeks."
+    }
+    print(json.dumps(mock, indent=2))
+    raise SystemExit(0)
+
 print(f"Testing Expansion Signal Detector with account: {sample['account_name']}\n")
 result = detect_expansion_signals(sample)
 print(json.dumps(result, indent=2))

@@ -1,18 +1,28 @@
 # Expansion Signal Detector
 
-Scans call transcripts and post-call notes for language that signals a customer is ready to expand. Surfaces the upsell opportunity before it passes.
+## Quick Start
+1. Clone this repo
+2. `cd expansion-signal-detector`
+3. `python3 test.py` — see it work instantly (no setup needed)
+4. Copy `.env.example` to `.env`, add your API key, run again with real AI
+
+---
+
+An intelligent text processor for expansion signals. You paste a transcript or post-call notes as text — the AI identifies buying signals and blockers and surfaces the upsell opportunity. Optionally alerts the CSM via Slack.
+
+> **How it works:** You provide the call context. The AI reads it and identifies expansion signals. No live Gong or CRM connection required — connect real integrations once the output quality is proven.
 
 ## What it does
-- Reads the latest customer conversation context (transcript or notes)
+- Reads transcript text or post-call notes you provide
 - Identifies buying signals and expansion blockers
 - Summarises why the account may be ready to expand
-- Sends the CSM a Slack alert with a suggested next action
+- Optionally sends the CSM a Slack alert with a suggested next action
 
 ## Providers supported
-- CRM: Salesforce or HubSpot (context enrichment)
-- Transcript: Gong or Fireflies (or pass raw text directly)
 - LLM: Anthropic (Claude) or OpenAI (GPT)
-- Notifications: Slack
+- Notifications: Slack (optional)
+- CRM: Salesforce or HubSpot (optional — for live data pull once integrated)
+- Transcript: Gong or Fireflies (optional — or pass raw text directly)
 
 ---
 
@@ -70,9 +80,11 @@ Send a POST to your Modal webhook after a call or note is logged:
 ## Test locally
 
 ```bash
-ACCOUNT_NAME="Acme Corp" \
-TRANSCRIPT_TEXT="We're expanding to 3 new regions next quarter and want to understand your enterprise tier..." \
-modal run execution/main.py
+# No setup needed — shows mock output immediately
+python3 test.py
+
+# With a real API key
+ANTHROPIC_API_KEY=sk-ant-... python3 test.py
 ```
 
 ---

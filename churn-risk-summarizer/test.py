@@ -56,6 +56,31 @@ sample = {
     "engagement_summary": os.getenv("ENGAGEMENT_SUMMARY", "Skipped last 2 monthly check-ins. NPS dropped from 8 to 6 in last survey."),
 }
 
+# --- No API key? Show mock output and exit ---
+if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
+    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
+    mock = {
+        "summary": "TechFlow Inc is showing early churn indicators with declining usage and disengagement from check-ins.",
+        "risk_story": "TechFlow started strong but has gone quiet over the past 30 days. Two users who were previously active have stopped logging in entirely. The open support ticket at 12 days is adding friction at exactly the wrong time — if it's not resolved this week, it becomes the reason they leave.",
+        "primary_risks": [
+            "12-day open support ticket creating active frustration",
+            "Login frequency down 40% — 2 ghost users since February",
+            "Missed last 2 monthly check-ins"
+        ],
+        "stabilizers": [
+            "Core product still in use by majority of team",
+            "Renewal not imminent — time to course-correct"
+        ],
+        "next_call_focus": [
+            "Lead with the open support ticket — acknowledge the delay, give a timeline",
+            "Ask about the 2 inactive users — is there a team change?",
+            "Reframe check-ins as time-saving, not reporting"
+        ],
+        "urgency": "high"
+    }
+    print(json.dumps(mock, indent=2))
+    raise SystemExit(0)
+
 print(f"Testing Churn Risk Summarizer with account: {sample['account_name']}\n")
 result = build_risk_story(sample)
 print(json.dumps(result, indent=2))

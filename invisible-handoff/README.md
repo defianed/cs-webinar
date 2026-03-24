@@ -1,5 +1,13 @@
 # Invisible Handoff
 
+## Quick Start
+1. Clone this repo
+2. `cd invisible-handoff`
+3. `python3 test.py` — see it work instantly (no setup needed)
+4. Copy `.env.example` to `.env`, add your API key, run again with real AI
+
+---
+
 Turns a Closed Won event into a CSM-ready customer brief — before the first call.
 
 ## What it does
@@ -80,11 +88,11 @@ Send a POST request to the Modal webhook URL when a deal closes:
 ## Test locally
 
 ```bash
-# Set env vars then run local entrypoint
-ACCOUNT_NAME="Acme Corp" \
-TRANSCRIPT_TEXT="Customer said their main goal is reducing onboarding time by 50%..." \
-ACCOUNT_ID="test-001" \
-modal run execution/main.py
+# No setup needed — shows mock output immediately
+python3 test.py
+
+# With a real API key
+ANTHROPIC_API_KEY=sk-ant-... python3 test.py
 ```
 
 ---

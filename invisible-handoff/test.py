@@ -63,6 +63,50 @@ sample = {
     "account_id": os.getenv("ACCOUNT_ID", "ACC-001"),
 }
 
+# --- No API key? Show mock output and exit ---
+if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
+    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
+    mock = {
+        "customer_goals": [
+            "Cut manual onboarding time by 50%",
+            "Replace manual CSV exports with API-driven workflow"
+        ],
+        "pain_points": [
+            "Current process requires 3 manual steps per account",
+            "No API access in current plan"
+        ],
+        "commitments_made": [
+            "API access delivered in month 1",
+            "Custom onboarding doc within 2 weeks of go-live"
+        ],
+        "objections_raised": [
+            "IT approval still required for API integration — not yet started"
+        ],
+        "stakeholder_map": [
+            "Sarah (Champion) — leaving in 6 weeks, need to identify replacement",
+            "IT team (Blocker) — must approve API integration before go-live"
+        ],
+        "communication_style": "Detail-oriented, prefers written summaries over verbal updates",
+        "onboarding_risks": [
+            "IT approval not secured — flag this in the first call",
+            "Champion Sarah departing in 6 weeks — relationship continuity at risk"
+        ],
+        "first_call_agenda": [
+            "Confirm onboarding timeline and API access date",
+            "Introduce CSM process and cadence",
+            "Identify IT contact for integration approval",
+            "Set 30/60/90 day success metrics"
+        ],
+        "top_3_watchouts": [
+            "IT approval not secured — make this the first priority",
+            "Sales promised custom onboarding doc — coordinate with solutions team immediately",
+            "Champion Sarah leaving in 6 weeks — start building relationship with her replacement now"
+        ],
+        "brief_summary": "Acme is focused on cutting manual ops work. Sales committed to API access and a custom onboarding doc. IT approval is the main blocker. Champion Sarah is engaged but leaving soon — prioritise getting a second contact before she goes."
+    }
+    print(json.dumps(mock, indent=2))
+    raise SystemExit(0)
+
 print(f"Testing Invisible Handoff with account: {sample['account_name']}\n")
 result = build_brief(sample)
 print(json.dumps(result, indent=2))

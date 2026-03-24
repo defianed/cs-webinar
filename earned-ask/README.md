@@ -1,17 +1,27 @@
 # The Earned Ask
 
-Detects positive sentiment and a milestone met, then drafts the review request email for your CSM to send. You earned the right to ask — here it is.
+## Quick Start
+1. Clone this repo
+2. `cd earned-ask`
+3. `python3 test.py` — see it work instantly (no setup needed)
+4. Copy `.env.example` to `.env`, add your API key, run again with real AI
+
+---
+
+An intelligent text processor for review timing. You describe a milestone and recent interactions as text — the AI decides if a review request is earned and drafts the email. Optionally delivers the draft to the CSM via Slack.
+
+> **How it works:** You provide the milestone context. The AI writes the review request draft. No live CRM connection required — connect real integrations once the output quality is proven.
 
 ## What it does
-- Reviews recent positive interactions and milestone context
+- Reads milestone and interaction context you provide
 - Decides whether a review ask is appropriate (and why)
 - Drafts a personalised, non-generic review request email
-- Delivers the draft to the CSM via Slack for approval before sending
+- Optionally delivers the draft to the CSM via Slack for approval before sending
 
 ## Providers supported
-- CRM: Salesforce or HubSpot (context enrichment)
 - LLM: Anthropic (Claude) or OpenAI (GPT)
-- Notifications: Slack
+- Notifications: Slack (optional)
+- CRM: Salesforce or HubSpot (optional — for live data pull once integrated)
 
 ---
 
@@ -70,11 +80,11 @@ Trigger from a milestone event — NPS survey response, support ticket resolved 
 ## Test locally
 
 ```bash
-ACCOUNT_NAME="Acme Corp" \
-MILESTONE_ACHIEVED="Went live ahead of schedule, first month complete" \
-INTERACTION_SUMMARY="Champion said she'd recommend to peers" \
-SENTIMENT_SUMMARY="NPS 9 submitted yesterday" \
-modal run execution/main.py
+# No setup needed — shows mock output immediately
+python3 test.py
+
+# With a real API key
+ANTHROPIC_API_KEY=sk-ant-... python3 test.py
 ```
 
 ---

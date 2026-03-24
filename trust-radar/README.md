@@ -1,5 +1,13 @@
 # Trust Radar
 
+## Quick Start
+1. Clone this repo
+2. `cd trust-radar`
+3. `python3 test.py` — see it work instantly (no setup needed)
+4. Copy `.env.example` to `.env`, add your API key, run again with real AI
+
+---
+
 Analyses a win-back or escalation call and tells the CSM whether they're dealing with genuine loss of trust, negotiation pressure, mixed signals, or unclear evidence.
 
 ## What it does
@@ -86,7 +94,11 @@ modal deploy execution/main.py
 ## Test locally
 
 ```bash
-modal run execution/main.py
+# No setup needed — shows mock output immediately
+python3 test.py
+
+# With a real API key
+ANTHROPIC_API_KEY=sk-ant-... python3 test.py
 ```
 
 ---
@@ -128,6 +140,10 @@ Recommended Actions:
 | `OPENAI_API_KEY` | If openai | OpenAI API key |
 | `SLACK_BOT_TOKEN` | Yes | Bot token for CSM alerts |
 | `CRM_PROVIDER` | Optional | `salesforce` or `hubspot` |
-| `CALL_TRANSCRIPT_PROVIDER` | Yes | `gong`, `fireflies`, or `zoom` |
+| `CALL_TRANSCRIPT_PROVIDER` | Optional | `gong`, `fireflies`, or `zoom` |
 | `SUPPORT_PROVIDER` | Optional | `zendesk` or `intercom` |
 | `TRUST_RADAR_MIN_CONFIDENCE` | Optional | Default `0.7` — below this, forces MIXED/UNCLEAR |
+
+> **HubSpot note:** HubSpot deprecated API keys in 2022. Use a Private App token (`HUBSPOT_PRIVATE_APP_TOKEN`) instead.
+>
+> **Zoom note:** Zoom deprecated JWT tokens in 2023. Use OAuth tokens (`ZOOM_OAUTH_TOKEN`) instead.

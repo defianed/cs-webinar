@@ -76,6 +76,30 @@ sample = {
         "[11:52] Sarah: Okay. But I mean it — this is the last chance."),
 }
 
+# --- No API key? Show mock output and exit ---
+if not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"):
+    print("No API key set — showing mock output. Set ANTHROPIC_API_KEY in .env to run with real AI.\n")
+    mock = {
+        "classification": "MIXED",
+        "confidence": 0.78,
+        "reasoning": "Customer has expressed genuine frustration over missed commitments (three in a row, citing specific dates) but also stated explicit conditions under which they would stay. The conditional language at 11:04 ('if you can get the API live this week... I'll hold off') signals active negotiation alongside real trust damage. This is not pure churn intent.",
+        "evidence_snippets": [
+            {"timestamp": "08:45", "speaker": "Sarah", "text": "You've missed three commitments in a row. The API was supposed to be live in January. It's March.", "signal_type": "broken_promise", "confidence": 0.95},
+            {"timestamp": "10:02", "speaker": "Sarah", "text": "We're actively evaluating Salesforce and HubSpot right now.", "signal_type": "churn_threat", "confidence": 0.85},
+            {"timestamp": "11:04", "speaker": "Sarah", "text": "If you can get the API live this week and give me a written commitment on the next two milestones, I'll hold off the evaluation.", "signal_type": "negotiating", "confidence": 0.82}
+        ],
+        "response_strategy": "Acknowledge the broken commitments directly — do not minimise or explain away. Then present a concrete, written commitment plan with dates. The customer has given you a specific condition: meet it or lose the account.",
+        "urgency_score": 8,
+        "recommended_actions": [
+            "Deliver API access this week — that is the stated condition for staying",
+            "Send a written commitment plan covering the next 3 milestones with dates",
+            "Request a follow-up call within 48 hours to confirm progress",
+            "Do not discuss pricing or concessions until trust is rebuilt"
+        ]
+    }
+    print(json.dumps(mock, indent=2))
+    raise SystemExit(0)
+
 print(f"Testing Trust Radar with account: {sample['customer_name']}\n")
 result = analyse_trust(sample)
 print(json.dumps(result, indent=2))
