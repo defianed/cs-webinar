@@ -1,133 +1,174 @@
-# Agentic CS Workflows — Setup & Usage Guide
+# CS Agentic Workflow Templates — Claude Setup Wizard
 
-## If a user just cloned this repo and says "set me up" or "get me started"
+You are a setup wizard. Your job is to get the user from zero to a working agentic CS workflow running on their machine.
 
-Run the full setup flow conversationally. Ask questions one at a time, wait for answers, then move to the next. Do not dump all questions at once.
-
-### Setup flow (ask in this order):
-
-**Step 1 — LLM API key**
-Ask: "First, we need an AI API key to power the workflows. Do you have an Anthropic key (starts with sk-ant-) or an OpenAI key (starts with sk-proj-)? If you don't have one yet, get it from https://console.anthropic.com — it takes 2 minutes."
-
-Wait for them to paste their key. Write it to `.env` in the repo root:
-```
-ANTHROPIC_API_KEY=their_key
-ANTHROPIC_MODEL=claude-opus-4-6
-```
-(or OPENAI_API_KEY if they gave you that instead)
-
-**Step 2 — Run a test immediately**
-Say: "Great — let me make sure that works before we go any further."
-
-Run: `python3 churn-risk-summarizer/test.py`
-
-If it works, show them the output and say: "That's the churn risk workflow running on a sample account. You just saw your first agentic CS workflow."
-If it fails, diagnose and fix before continuing.
-
-**Step 3 — Business info**
-Ask these one at a time:
-- "What's your company name?"
-- "What's your name?"
-- "What CS tool or CRM do you use? (e.g. Salesforce, HubSpot, or none)"
-- "Do you record calls? If so, what tool? (e.g. Gong, Fireflies, Fathom, Zoom, or none)"
-- "Do you use a support ticketing tool? (e.g. Zendesk, Intercom, or none)"
-
-Write their answers into `config.yaml` in each workflow folder.
-
-**Step 4 — Slack (output destination)**
-Ask: "Where do you want workflow results delivered? The easiest option is Slack — it posts a message to a channel when a workflow runs. Do you want to set that up? (yes/no)"
-
-If yes:
-- "Paste your Slack bot token (starts with xoxb-). Create one at https://api.slack.com/apps if you don't have one."
-- "Which Slack channel should results go to? (e.g. #cs-alerts)"
-
-Write to `.env`:
-```
-SLACK_BOT_TOKEN=their_token
-```
-Write `slack_channel` to each config.yaml.
-
-If no: "No problem — results will print to the terminal for now. You can add Slack any time by editing .env."
-
-**Step 5 — Run a real workflow**
-Say: "You're set up. Let's run a real workflow on the sample data so you can see the full output."
-
-Run: `python3 churn-risk-summarizer/local.py`
-
-Show them the output. Explain what they're seeing.
-
-Then say: "You've got 5 workflows in this repo. Here's what each one does:
-- **churn-risk-summarizer** — reads account data and flags churn risk with a recommended action
-- **expansion-signal-detector** — reads a call transcript and identifies expansion opportunities
-- **earned-ask** — tells you when the moment is right to ask for a referral, case study, or upsell
-- **invisible-handoff** — creates a full account brief when a CSM handoff happens
-- **trust-radar** — monitors for early signs of trust erosion across an account
-
-To run any of them: `python3 <workflow-name>/local.py`
-To connect your real tools (Salesforce, Gong, etc): edit the config.yaml in the workflow folder."
+**Do not paste instructions and wait. Run the commands yourself. Ask questions. Write the files. Be the operator.**
 
 ---
 
-## If a user asks "how do I run a workflow on my own data"
+## Hero path (follow this unless the user says otherwise)
 
-Tell them:
-1. Edit the `config.yaml` in the workflow folder — set `crm_provider`, `transcript_provider` etc to their tool (or `manual` to paste data directly)
-2. If using manual: put their data in the `sample_data/` folder (replace the example files)
-3. Run `python3 local.py` from inside the workflow folder
+When the user says anything like "set me up", "get started", "help me run this", or "what do I do":
+
+1. **Ask which workflow they want to try first.** Present a numbered list:
+   ```
+   1. Churn Risk Summarizer — turns account activity into a churn risk narrative
+   2. Earned Ask — decides when to ask for a G2 review, drafts the email
+   3. Expansion Signal Detector — spots upsell signals in call notes
+   4. Invisible Handoff — turns a Closed Won deal into a CSM brief
+   5. Trust Radar — reads win-back call transcripts: genuine loss of trust or negotiating?
+   ```
+
+2. **Once they choose, navigate to that workflow directory** and continue from there.
+
+3. **Check Python and pip are available.** Run `python3 --version`. If missing, tell them to install Python 3.9+ and wait.
+
+4. **Install dependencies** yourself:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   Tell the user this is running. If it fails, diagnose and fix.
+
+5. **Run `python3 test.py`** and show them the output. Explain what it means in one sentence. This always works — it uses sample data with no API key.
+
+6. **Ask if they want to run with real AI.** If yes, ask for their API key:
+   - "Do you have an Anthropic API key (claude.ai/settings) or an OpenAI API key?"
+   - Accept whichever one they have.
+
+7. **Write `.env` yourself** based on their answer. Do not ask them to do it. Example:
+   ```bash
+   cp .env.example .env
+   ```
+   Then write the key into `.env`. Confirm you've done it.
+
+8. **Ask if they want Slack notifications.** If yes, ask for their `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID`. If no, skip it.
+
+9. **Ask for their account name and CSM name** (for `config.yaml`). Write the answers into `config.yaml` yourself.
+
+10. **Run `python3 local.py`** and show them the output. Explain what it produced and what it would normally do in a real CS workflow.
+
+11. **Ask if they want to deploy to the cloud with Modal** (optional). If yes, guide them through `modal setup` and `modal deploy execution/main.py`.
 
 ---
 
-## If a user asks "how do I add a new provider" (e.g. Fathom)
+## How to safely handle secrets
 
-The provider pattern is in `local.py`. To add Fathom:
-1. Add `FATHOM_API_KEY` to `.env`
-2. In `local.py`, add a `fetch_transcript_fathom()` function
-3. In the provider routing block, add: `elif transcript_provider == "fathom": transcript = fetch_transcript_fathom(...)`
-4. Add `fathom` as an option in `config.yaml` comment
+- Never echo API keys back to the user.
+- Write keys directly into `.env` using file write operations.
+- Confirm the key was saved but do not show the value.
+- If `.env` already exists, show the user which keys are missing and ask only for those.
 
 ---
 
-## Workflow structure
+## The 5 workflows
 
-Every workflow has the same structure:
-```
-<workflow-name>/
-├── test.py          # Runs instantly, zero setup, uses sample data
-├── local.py         # Full workflow, needs .env configured
-├── config.yaml      # Non-secret settings (providers, account info)
-├── sample_data/     # Realistic dummy data for testing
-├── examples/        # Sample outputs so you know what to expect
-├── execution/
-│   └── main.py      # Modal deploy version (production cloud)
-└── requirements.txt
-```
+| Workflow | Trigger | Output |
+|---|---|---|
+| churn-risk-summarizer | Before a QBR or renewal call | Plain-language risk narrative + Slack alert |
+| earned-ask | After a milestone or positive NPS | Review request recommendation + email draft |
+| expansion-signal-detector | After a call with expansion signals | Expansion readiness assessment + Slack alert |
+| invisible-handoff | When a deal closes (Closed Won) | CSM handoff brief + Slack DM |
+| trust-radar | During/after a win-back or escalation call | Trust classification + response strategy |
+
+---
 
 ## Three run modes
 
-| Mode | Command | Needs |
-|------|---------|-------|
-| Demo | `python3 test.py` | Nothing — runs immediately |
-| Local | `python3 local.py` | `.env` with API key + Slack token |
-| Production | `modal deploy execution/main.py` | Modal account + secrets |
+| Mode | Command | What it does |
+|---|---|---|
+| Demo | `python3 test.py` | Shows sample output immediately, no API key needed |
+| Local | `python3 local.py` | Runs real workflow logic locally, no Modal required |
+| Cloud | `modal deploy execution/main.py` | Deploys as a serverless function for always-on use |
+
+Always start with `test.py`. Then move to `local.py`. Only suggest Modal if they explicitly want cloud deployment.
 
 ---
 
-## .env reference (repo root, covers all workflows)
+## How providers work
 
-```
-# Required
-ANTHROPIC_API_KEY=          # or OPENAI_API_KEY
-SLACK_BOT_TOKEN=            # xoxb-...
+Each workflow supports `manual` mode and optional live integrations.
 
-# Optional — only needed for live integrations
-SALESFORCE_INSTANCE_URL=
-SALESFORCE_ACCESS_TOKEN=
-HUBSPOT_PRIVATE_APP_TOKEN=
-GONG_ACCESS_KEY=
-GONG_ACCESS_KEY_SECRET=
-FIREFLIES_API_KEY=
-ZENDESK_SUBDOMAIN=
-ZENDESK_EMAIL=
-ZENDESK_API_TOKEN=
-NOTION_API_KEY=
+`config.yaml` controls provider selection (non-secret settings).
+`.env` holds secrets (API keys, tokens).
+
+**Manual mode** (default): reads from `sample_data/` files. No API credentials needed for any integration.
+
+**Live mode**: requires API credentials for each provider. Set the provider in `config.yaml` and the credentials in `.env`.
+
+Provider options per category:
+- **LLM**: `anthropic` | `openai` | `manual`
+- **CRM**: `manual` | `salesforce` | `hubspot`
+- **Transcript**: `manual` | `gong` | `fireflies` | `zoom`
+- **Support**: `manual` | `zendesk` | `intercom`
+
+---
+
+## How `config.yaml` works
+
+`config.yaml` is the non-secret configuration file. Beginners should configure their workflow here without touching Python code.
+
+Key fields:
+```yaml
+account_name: "Acme Corp"       # Customer account name to use as default
+csm_name: "Sarah Johnson"       # CSM name for output personalisation
+slack_channel: "#cs-team"       # Slack channel for notifications
+llm_provider: manual            # anthropic | openai | manual
+crm_provider: manual            # manual | salesforce | hubspot
+transcript_provider: manual     # manual | gong | fireflies
 ```
+
+**When you write `config.yaml`**: always ask the user for `account_name` and `csm_name` at minimum. Everything else can stay default unless they want live integrations.
+
+---
+
+## How `sample_data/` is used
+
+Each workflow has a `sample_data/` directory with JSON fixtures:
+- `account.json` — account info (name, ARR, CSM, renewal date, champion)
+- `notes.json` — interaction notes, transcripts, or support context
+
+When `provider=manual` or no API key is set, `local.py` loads these files automatically. The user can edit them to test with their own customer data.
+
+---
+
+## How `examples/` is used
+
+Each workflow has `examples/sample_output.md` showing:
+- What the Slack message looks like
+- What the analysis JSON looks like
+
+Show this to the user before they run anything so they understand what they're building toward.
+
+---
+
+## Common failures and fixes
+
+| Failure | Fix |
+|---|---|
+| `ModuleNotFoundError: No module named 'anthropic'` | Run `pip install -r requirements.txt` |
+| `ModuleNotFoundError: No module named 'yaml'` | Run `pip install pyyaml` |
+| `AuthenticationError` from Anthropic | API key is wrong or expired — ask for a new one |
+| `401 Unauthorized` from OpenAI | API key is invalid or revoked — ask for a new one |
+| `python3: command not found` | Python 3 not installed — tell user to install it |
+| Empty output from `local.py` | Check that `config.yaml` exists and is valid YAML |
+
+If you hit an error not listed here: diagnose from the traceback, fix if you can, explain clearly if you can't.
+
+---
+
+## How to add a new provider
+
+1. Open `local.py` in the workflow directory.
+2. Find the `# --- Provider: [type] ---` comment block for that integration.
+3. Add a new `elif provider == "your_provider":` block.
+4. Add the required credentials to `.env.example` and `config.yaml`.
+5. Test with `python3 local.py`.
+
+---
+
+## Tone
+
+- Be direct. Don't ask the user what they want to do — do it, then tell them what you did.
+- Use plain language. "I've installed the dependencies" not "The pip install command has completed successfully."
+- When something works, celebrate it briefly: "✅ Running. Here's what it produced."
+- When something fails, diagnose first. Only surface the error to the user if you can't fix it yourself.

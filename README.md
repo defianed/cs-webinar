@@ -1,175 +1,101 @@
-# CS Workflow Templates
+# CS Agentic Workflow Templates
 
-## Get Started in 5 Minutes
+5 agentic CS workflows you can clone, run today, and adapt to your stack.
 
-```bash
-git clone https://github.com/defianed/cs-webinar.git
-cd cs-webinar
-pip install -r requirements.txt
-python3 setup.py
-```
-
-The setup wizard will walk you through:
-1. Your LLM API key (Anthropic or OpenAI)
-2. A live test so you see it working immediately
-3. Your company and CSM details
-4. Your tool stack (CRM, transcripts, support — or manual if you don't have them)
-5. Where to send results (Slack, Notion, or both)
-
-Takes about 5 minutes. After that, run any workflow with `python3 <workflow>/local.py`.
+Built for the [ExtensibleAgents](https://extensibleagents.com) webinar. No developer needed.
 
 ---
 
+## ⚡ Quickest way to start
 
-5 agentic CS workflows you can run today. Built by [ExtensibleAgents.com](https://extensibleagents.com).
+**Open this repo in [Claude Code](https://claude.ai/code) and say:**
 
----
+> set me up
 
-## See It Work in 60 Seconds
-
-```bash
-git clone https://github.com/defianed/cs-webinar
-cd cs-webinar/churn-risk-summarizer
-python3 test.py
-```
-
-That's it. No API key, no setup. You'll see realistic output immediately.
-
-Add your API key and it calls the real LLM with sample data:
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-python3 test.py
-```
+Claude will ask you which workflow to try, install dependencies, write your `.env` and `config.yaml`, and run the demo — all in one conversation.
 
 ---
 
 ## The 5 Workflows
 
-| Workflow | Problem it solves | What you get out |
-|----------|------------------|-----------------|
-| **invisible-handoff** | CSM shows up to first customer call underprepared — all they got was a Slack message | Structured handoff brief: goals, stakeholders, commitments, watchouts, suggested first call agenda |
-| **trust-radar** | Can't tell if a win-back customer is genuinely leaving or just negotiating | Classification (NEGOTIATING / GENUINE_LOSS_OF_TRUST / MIXED), evidence snippets, specific response strategy |
-| **expansion-signal-detector** | Upsell opportunities sit in transcripts unnoticed until the moment passes | Confidence score, buying signals, blockers, recommended timing, next steps |
-| **churn-risk-summarizer** | Health scores give a number, not a story — CSM walks into QBR without knowing *why* | Plain-language risk narrative, primary risks, stabilizers, next call focus, urgency |
-| **earned-ask** | Review requests go out at the wrong time, wrong message, and get ignored | Should-ask decision, reason, subject line, drafted email, CSM notes |
-
-Each workflow has an `examples/sample_output.md` showing exactly what the output looks like.
+| Workflow | What it does | Sample output |
+|---|---|---|
+| **Churn Risk Summarizer** | Turns recent account activity into a plain-language risk narrative | [→ example](churn-risk-summarizer/examples/sample_output.md) |
+| **Earned Ask** | Decides when to ask for a G2 review, drafts the email | [→ example](earned-ask/examples/sample_output.md) |
+| **Expansion Signal Detector** | Spots upsell signals in call notes and transcripts | [→ example](expansion-signal-detector/examples/sample_output.md) |
+| **Invisible Handoff** | Turns a Closed Won deal into a CSM handoff brief | [→ example](invisible-handoff/examples/sample_output.md) |
+| **Trust Radar** | Reads win-back calls: genuine loss of trust, or negotiating? | [→ example](trust-radar/examples/sample_output.md) |
 
 ---
 
-## Three Ways to Run
+## Three ways to run
 
-### 1. `python3 test.py` — No setup required
+| Mode | Command | Requires |
+|---|---|---|
+| **Demo** | `python3 test.py` | Nothing |
+| **Local** | `python3 local.py` | API key in `.env` |
+| **Cloud** | `modal deploy execution/main.py` | Modal account |
+
+Start with `test.py`. Then move to `local.py`. Only use Modal when you're ready for cloud deployment.
+
+---
+
+## Manual path (if not using Claude Code)
 
 ```bash
-cd earned-ask
-python3 test.py
-```
+# Step 1: Clone and install
+git clone https://github.com/defianed/cs-webinar
+cd cs-webinar
+pip install -r requirements.txt
 
-Prints realistic mock output. No API key needed.
+# Step 2: See the demo
+cd trust-radar   # or any workflow
+python3 test.py  # no setup required, shows sample output
 
-Set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` and it calls the real LLM with the `sample_data/` fixtures automatically.
+# Step 3: See the example output before running anything
+cat examples/sample_output.md
 
-### 2. `python3 local.py` — Full local run
+# Step 4: Set up your API key
+cp .env.example .env
+# Edit .env — add ANTHROPIC_API_KEY (or OPENAI_API_KEY)
 
-```bash
-cd earned-ask
-cp .env.example .env   # one .env for all 5 workflows
-# Edit .env — add API key, optionally Slack token
+# Step 5: Edit config.yaml for your account
+# Set account_name, csm_name, and provider preferences
+
+# Step 6: Run with real AI
 python3 local.py
-```
 
-Reads `config.yaml` for settings. When `provider=manual` (the default), loads data from `sample_data/`. With an API key, runs the full workflow end-to-end.
-
-### 3. `modal deploy` — Production cloud
-
-```bash
-pip install modal
-modal token new
-modal secret create earned-ask-secrets ANTHROPIC_API_KEY=sk-ant-... SLACK_BOT_TOKEN=xoxb-...
-cd earned-ask
+# Step 7 (optional): Deploy to the cloud
+pip install modal && modal setup
 modal deploy execution/main.py
 ```
 
-Modal gives you a webhook URL. Point your CRM, Gong, or Zapier at it and the workflow runs on every trigger.
+---
+
+## What you need
+
+- Python 3.9+
+- An [Anthropic](https://claude.ai/settings) or [OpenAI](https://platform.openai.com) API key
+- (Optional) Slack bot token for notifications
+- (Optional) Modal account for cloud deployment
+
+**Cost per run:** approximately $0.02–0.05 with Claude or GPT-4o.
 
 ---
 
-## Cost Estimate
+## How it works
 
-Each workflow makes one LLM call per run:
+Each workflow has:
+- `test.py` — always works, shows sample output with no setup
+- `local.py` — full workflow logic locally, reads from `config.yaml`
+- `config.yaml` — non-secret settings (account name, CSM, provider choices)
+- `.env` — secrets only (API keys, Slack tokens)
+- `sample_data/` — realistic fixtures for manual mode
+- `examples/sample_output.md` — what the workflow produces
+- `execution/main.py` — Modal deploy target for cloud use
 
-| Model | Approx. cost per run |
-|-------|---------------------|
-| claude-opus-4-6 (default) | ~$0.05–$0.15 |
-| gpt-4o | ~$0.05–$0.15 |
-
-A team running 50 accounts through churn-risk-summarizer weekly ≈ $5–7/week.
-
----
-
-## How Providers Work
-
-Each workflow's `config.yaml` has provider settings:
-
-```yaml
-crm_provider: manual        # manual | salesforce | hubspot
-transcript_provider: manual # manual | gong | fireflies | fathom | zoom
-support_provider: manual    # manual | zendesk | intercom
-```
-
-**`manual`** = load from `sample_data/` files. No external APIs needed.
-
-Change a provider value and add the credentials to `.env` to connect a real system. The `.env.example` file in each workflow shows what variables you need.
+Providers default to `manual` mode — no CRM, Gong, or Zendesk accounts required to get started.
 
 ---
 
-## Sample Data
-
-Every workflow ships with realistic fixtures in `sample_data/`:
-
-- `account.json` — Acme Corp, Sarah Johnson CSM, ARR, health score, contract date
-- `transcript.json` — ~400-word realistic call transcript relevant to the workflow
-- `tickets.json` — 3 fake support tickets (where relevant)
-
-Edit these files to test with your own scenarios, or paste your own transcript into `transcript.json`.
-
----
-
-## Prerequisites
-
-```bash
-python3 --version  # 3.8+
-pip install anthropic openai slack-sdk requests pyyaml python-dotenv
-```
-
-That's everything you need for `test.py` and `local.py`. `modal` is only needed for cloud deployment.
-
----
-
-## What's in Each Workflow
-
-```
-workflow-name/
-├── config.yaml           # Account name, CSM, provider settings (no secrets)
-├── .env.example          # All credentials — copy to .env and fill in
-├── test.py               # Zero-setup test: mock output or live LLM with sample data
-├── local.py              # Full local run — loads config.yaml and sample_data/
-├── execution/main.py     # Modal deployment — adds Slack, CRM, transcript integrations
-├── sample_data/
-│   ├── account.json      # Fake Acme Corp account
-│   ├── transcript.json   # Realistic call transcript
-│   └── tickets.json      # 3 fake support tickets (where relevant)
-├── examples/
-│   └── sample_output.md  # What real output looks like
-└── README.md             # Workflow-specific quickstart
-```
-
----
-
-## Need Help?
-
-Built by [ExtensibleAgents](https://extensibleagents.com) — the agentic CS platform co-founded by Lincoln Murphy and Lewis Thompson.
-
-Visit **[extensibleagents.com](https://extensibleagents.com)** for help customising these for your stack or to see a full agentic CS deployment.
+Built with [Claude](https://anthropic.com) by [ExtensibleAgents](https://extensibleagents.com)

@@ -1,7 +1,8 @@
 # test.py — zero setup required. If API key found, calls real LLM with sample_data/.
 # Otherwise prints labelled mock output and exits 0.
 # Run: python3 test.py
-import os, json
+import os, json, sys
+LIVE_MODE = "--live" in sys.argv
 from pathlib import Path
 
 try:
@@ -36,7 +37,10 @@ def load_sample_data() -> dict:
 
 
 def has_api_key() -> bool:
-    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip()) or bool((os.getenv("OPENAI_API_KEY") or "").strip())
+    ak = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
+    ok = (os.getenv("OPENAI_API_KEY") or "").strip()
+    # Validate OpenAI key format — skip revoked/invalid keys
+    return bool(ak) or (bool(ok) and ok.startswith("sk-"))
 
 
 def get_provider() -> str:
@@ -92,7 +96,7 @@ def main():
     account_name = data.get("account", {}).get("name", "Acme Corp")
     print(f"Earned Ask — {account_name}\n")
 
-    if has_api_key():
+    if LIVE_MODE and has_api_key():
         print(f"[LIVE] API key found — calling {get_provider()} with sample data...\n")
         result = build_review_request(data)
     else:
